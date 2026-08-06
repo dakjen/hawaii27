@@ -2,9 +2,9 @@
 
 :root {
   /* Same scheme as Ben's app — navy replaced by dark mauve pink. Rose stays. */
-  --navy: #3F1F35;
-  --navy-light: #4E2942;
-  --navy-dark: #2A1428;
+  --navy: #4B2833;
+  --navy-light: #5D3441;
+  --navy-dark: #331A22;
   --rose: #C47A8A;
   --rose-light: #d4909f;
   --rose-dim: rgba(196, 122, 138, 0.15);
@@ -12,7 +12,7 @@
   --off-white: #f0e5ec;
   --gray: #a08e97;
   --gray-light: #e8dde2;
-  --card-bg: #422239;
+  --card-bg: #542B36;
   --card-border: rgba(196, 122, 138, 0.2);
   --tan: #D8B896;
   --tan-dim: rgba(216, 184, 150, 0.14);
@@ -41,7 +41,7 @@ html, body {
     calc(env(safe-area-inset-top, 0px) + clamp(2.5rem, 9vh, 4.5rem))
     1.5rem
     calc(env(safe-area-inset-bottom, 0px) + 1rem);
-  background: linear-gradient(160deg, #2A1428 0%, #3F1F35 50%, #2E152B 100%);
+  background: linear-gradient(160deg, #331A22 0%, #4B2833 50%, #3A1D28 100%);
   overflow: hidden;
 }
 
@@ -125,7 +125,7 @@ html, body {
   margin: 0 auto;
   padding-bottom: 2rem;
   min-height: 100vh;
-  background: linear-gradient(180deg, #2A1428 0%, #3F1F35 100%);
+  background: linear-gradient(180deg, #331A22 0%, #4B2833 100%);
 }
 
 /* Header */
@@ -748,7 +748,7 @@ html, body {
   background: linear-gradient(135deg, #c4a747 0%, #b08a2e 100%);
   border-radius: 14px;
   padding: 0.9rem 1.1rem;
-  color: #2E152B;
+  color: #3A1D28;
 }
 .nrt-alert-title {
   font-size: 0.78rem;
