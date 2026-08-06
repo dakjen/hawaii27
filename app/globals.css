@@ -1,19 +1,19 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Same scheme as Ben's app — navy replaced by dark mauve pink. Rose stays. */
-  --navy: #4B2833;
-  --navy-light: #5D3441;
-  --navy-dark: #331A22;
-  --rose: #C47A8A;
-  --rose-light: #d4909f;
-  --rose-dim: rgba(196, 122, 138, 0.15);
+  /* Ben's app rose (#C47A8A) is the mauve — using as main color for hawaii27. */
+  --navy: #C47A8A;
+  --navy-light: #d4909f;
+  --navy-dark: #A05F70;
+  --rose: #6E3846;         /* deeper rose for accents against the pink bg */
+  --rose-light: #85465a;
+  --rose-dim: rgba(110, 56, 70, 0.2);
   --white: #ffffff;
-  --off-white: #f0e5ec;
-  --gray: #a08e97;
-  --gray-light: #e8dde2;
-  --card-bg: #542B36;
-  --card-border: rgba(196, 122, 138, 0.2);
+  --off-white: #fbeef1;
+  --gray: #e6c7cd;
+  --gray-light: #f5e2e6;
+  --card-bg: #B06E7D;
+  --card-border: rgba(255, 255, 255, 0.2);
   --tan: #D8B896;
   --tan-dim: rgba(216, 184, 150, 0.14);
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -41,7 +41,7 @@ html, body {
     calc(env(safe-area-inset-top, 0px) + clamp(2.5rem, 9vh, 4.5rem))
     1.5rem
     calc(env(safe-area-inset-bottom, 0px) + 1rem);
-  background: linear-gradient(160deg, #331A22 0%, #4B2833 50%, #3A1D28 100%);
+  background: linear-gradient(160deg, #A05F70 0%, #C47A8A 50%, #B06E7D 100%);
   overflow: hidden;
 }
 
@@ -125,7 +125,7 @@ html, body {
   margin: 0 auto;
   padding-bottom: 2rem;
   min-height: 100vh;
-  background: linear-gradient(180deg, #331A22 0%, #4B2833 100%);
+  background: linear-gradient(180deg, #A05F70 0%, #C47A8A 100%);
 }
 
 /* Header */
@@ -748,7 +748,7 @@ html, body {
   background: linear-gradient(135deg, #c4a747 0%, #b08a2e 100%);
   border-radius: 14px;
   padding: 0.9rem 1.1rem;
-  color: #3A1D28;
+  color: #B06E7D;
 }
 .nrt-alert-title {
   font-size: 0.78rem;

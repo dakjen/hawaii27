@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" fill="#331A22" rx="6"/>
+  <rect width="32" height="32" fill="#A05F70" rx="6"/>
   <!-- Palm fronds -->
   <g stroke="#E6BFC7" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" fill="none">
     <path d="M 16 10 Q 10 6, 5 8"/>
