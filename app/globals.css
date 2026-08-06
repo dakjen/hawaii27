@@ -1,19 +1,19 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Ben's exact palette with navy hues shifted from blue (240°) to rose (348°). */
-  --navy: #381A22;         /* was #1B1B3A */
-  --navy-light: #4D242F;   /* was #252550 */
-  --navy-dark: #281217;    /* was #111128 */
-  --rose: #C47A8A;         /* unchanged accent */
-  --rose-light: #d4909f;
-  --rose-dim: rgba(196, 122, 138, 0.15);
-  --white: #ffffff;
-  --off-white: #f0f0f5;
-  --gray: #8888aa;
-  --gray-light: #e8e8f0;
-  --card-bg: #43202B;      /* was #1e1e42 */
-  --card-border: rgba(196, 122, 138, 0.2);
+  /* Mainly rose with blue accents. Roles inverted from Ben's app. */
+  --navy: #C47A8A;         /* main color (was navy) — rose */
+  --navy-light: #d4909f;
+  --navy-dark: #B06B7A;    /* main bg */
+  --rose: #1B1B3A;         /* accent (was rose) — navy blue */
+  --rose-light: #252550;
+  --rose-dim: rgba(27, 27, 58, 0.15);
+  --white: #1B1B3A;        /* dark text on light rose */
+  --off-white: #3C3C5E;
+  --gray: #6E4553;
+  --gray-light: #E5C4CB;
+  --card-bg: #d4909f;      /* lighter rose card */
+  --card-border: rgba(27, 27, 58, 0.2);
   --tan: #D8B896;
   --tan-dim: rgba(216, 184, 150, 0.14);
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -41,7 +41,7 @@ html, body {
     calc(env(safe-area-inset-top, 0px) + clamp(2.5rem, 9vh, 4.5rem))
     1.5rem
     calc(env(safe-area-inset-bottom, 0px) + 1rem);
-  background: linear-gradient(160deg, #281217 0%, #381A22 50%, #37131C 100%);
+  background: linear-gradient(160deg, #d4909f 0%, #C47A8A 50%, #B06B7A 100%);
   overflow: hidden;
 }
 
@@ -125,7 +125,7 @@ html, body {
   margin: 0 auto;
   padding-bottom: 2rem;
   min-height: 100vh;
-  background: linear-gradient(180deg, #281217 0%, #381A22 100%);
+  background: linear-gradient(180deg, #d4909f 0%, #C47A8A 100%);
 }
 
 /* Header */
