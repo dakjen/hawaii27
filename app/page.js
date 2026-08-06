@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { Home, MapPin, Mail, Calendar, Send } from 'lucide-react';
 import { ITINERARY, DESTINATIONS, AFFIRMATIONS } from '../lib/data';
 
 const PIN_LENGTH = 4;
@@ -597,21 +598,24 @@ function ItineraryTab() {
 function BottomNav({ tab, setTab, tabs }) {
   return (
     <nav className="bottom-nav">
-      {tabs.map(t => (
-        <button key={t.id} className={`bottom-nav-btn ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
-          <span className="bottom-nav-icon">{t.icon}</span>
-          <span className="bottom-nav-label">{t.label}</span>
-        </button>
-      ))}
+      {tabs.map(t => {
+        const Icon = t.Icon;
+        return (
+          <button key={t.id} className={`bottom-nav-btn ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
+            <span className="bottom-nav-icon"><Icon strokeWidth={2} /></span>
+            <span className="bottom-nav-label">{t.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }
 
 const BEN_TABS = [
-  { id: 'home', icon: '🏠', label: 'Home' },
-  { id: 'now', icon: '📍', label: 'Now' },
-  { id: 'notes', icon: '📬', label: 'Notes' },
-  { id: 'itinerary', icon: '🗓', label: 'Trip' },
+  { id: 'home', Icon: Home, label: 'Home' },
+  { id: 'now', Icon: MapPin, label: 'Now' },
+  { id: 'notes', Icon: Mail, label: 'Notes' },
+  { id: 'itinerary', Icon: Calendar, label: 'Trip' },
 ];
 
 // ── Ben App ───────────────────────────────────────────────────────────────────
@@ -826,9 +830,9 @@ function SenderHomeTab({ currentLocation, nextItem, password }) {
 }
 
 const SENDER_TABS = [
-  { id: 'home', icon: '💌', label: 'Send' },
-  { id: 'now', icon: '📍', label: 'Now' },
-  { id: 'itinerary', icon: '🗓', label: 'Trip' },
+  { id: 'home', Icon: Send, label: 'Send' },
+  { id: 'now', Icon: MapPin, label: 'Now' },
+  { id: 'itinerary', Icon: Calendar, label: 'Trip' },
 ];
 
 // ── Sender Page ─────────────────────────────────────────────────────
