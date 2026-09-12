@@ -86,6 +86,32 @@
   --nav-bg: rgba(30, 30, 66, 0.97);
 }
 
+/* Gina & John — near-black, silver accent. */
+[data-theme="black"] {
+  --navy: #1A1A1C;
+  --navy-light: #242427;
+  --navy-dark: #0A0A0B;
+  --rose: #C6CBD3;
+  --rose-light: #DADEE4;
+  --rose-dim: rgba(198, 203, 211, 0.14);
+  --white: #F1F2F4;
+  --off-white: #C2C6CD;
+  --gray: #858A93;
+  --gray-light: #2C2D31;
+  --card-bg: #151517;
+  --card-border: rgba(241, 242, 244, 0.12);
+  --tan: #C6CBD3;
+  --tan-dim: rgba(198, 203, 211, 0.10);
+  --accent-rgb: 198, 203, 211;
+  --deep-rgb: 0, 0, 0;
+  --grad-top: #1A1A1C;
+  --grad-mid: #111113;
+  --grad-bottom: #0A0A0B;
+  --accent-2: #9EA4AE;
+  --on-accent: #0F0F11;
+  --nav-bg: rgba(17, 17, 19, 0.97);
+}
+
 /* GM & JM — the default white palette above. */
 [data-theme="white"] { color-scheme: light; }
 
