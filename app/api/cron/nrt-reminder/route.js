@@ -27,7 +27,7 @@ export async function GET(req) {
 
   const when = days === 0 ? 'TODAY' : days === 1 ? 'TOMORROW' : `in ${days} days`;
   const result = await sendPushToAll({
-    title: '⚠️ NARITA — not Haneda',
+    title: 'NARITA — not Haneda',
     body: `Tokyo → Taipei flight ${when} departs from NRT (Narita), not HND. Allow 60–90 min from central Tokyo.`,
   });
   return Response.json({ ok: true, days, ...result });

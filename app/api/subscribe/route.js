@@ -4,7 +4,9 @@ import { requireAuth } from '../../../lib/auth';
 export const runtime = 'nodejs';
 
 export async function POST(req) {
-  if (!requireAuth(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = requireAuth(req);
+  if (!session) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  const subscriber = session.mode === 'sender' ? 'admin' : session.travelerId || null;
   try {
     const sub = await req.json();
     if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) {
@@ -13,9 +15,9 @@ export async function POST(req) {
     await initDb();
     const sql = getDb();
     await sql`
-      INSERT INTO push_subscriptions (endpoint, p256dh, auth)
-      VALUES (${sub.endpoint}, ${sub.keys.p256dh}, ${sub.keys.auth})
-      ON CONFLICT (endpoint) DO NOTHING
+      INSERT INTO push_subscriptions (endpoint, p256dh, auth, subscriber)
+      VALUES (${sub.endpoint}, ${sub.keys.p256dh}, ${sub.keys.auth}, ${subscriber})
+      ON CONFLICT (endpoint) DO UPDATE SET subscriber = ${subscriber}
     `;
     return Response.json({ ok: true });
   } catch (e) {

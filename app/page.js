@@ -1,16 +1,53 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { Home, MapPin, Mail, Calendar, Send } from 'lucide-react';
-import { ITINERARY, DESTINATIONS, AFFIRMATIONS } from '../lib/data';
+import { useState, useEffect, useCallback, Fragment } from 'react';
+import {
+  Home, MapPin, Mail, Calendar, Send, Wallet, Plane, Hotel, Lightbulb, Map,
+  UtensilsCrossed, Bell, BellOff, Check, CheckCircle2, TriangleAlert, Sparkles,
+  Heart, Users, Plus, Trash2, Clock, Smartphone, Waves, TreePalm, Mountain,
+  Leaf, Sunset, Bus, ShoppingBasket, Car, Fish, Star, Coffee, Umbrella, Compass,
+} from 'lucide-react';
+import {
+  ITINERARY, DESTINATIONS, AFFIRMATIONS,
+  TRAVELERS, PARTIES, DEFAULT_THEME, itineraryFor,
+  AWARDS, BOOKINGS, bookingsFor, bookingsOwnedBy, tripValue, awardCount, centsPerPoint, totals, money,
+  sourcePoints, centsPerSourcePoint,
+  SHARED_BUDGET, sharedFor, shareOf, lineTotal,
+  TRIP_DAYS, TOGETHER_DAYS, DAY_GRID, staySegments,
+} from '../lib/data';
+
+const LUCIDE = {
+  Home, MapPin, Mail, Calendar, Send, Wallet, Plane, Hotel, Lightbulb, Map,
+  UtensilsCrossed, Bell, BellOff, Check, CheckCircle2, TriangleAlert, Sparkles,
+  Heart, Users, Plus, Trash2, Clock, Smartphone, Waves, TreePalm, Mountain,
+  Leaf, Sunset, Bus, ShoppingBasket, Car, Fish, Star, Coffee, Umbrella, Compass,
+};
+
+// Icons come from Lucide by name — no emoji anywhere in the UI.
+function Icon({ name, size = 16, className }) {
+  const C = LUCIDE[name] || Compass;
+  return <C size={size} strokeWidth={2} className={className} aria-hidden="true" />;
+}
+
+function TitleIcon({ name, children }) {
+  return (
+    <div className="section-title">
+      <Icon name={name} size={13} />
+      <span>{children}</span>
+    </div>
+  );
+}
 
 const PIN_LENGTH = 4;
 const AUTH_KEY = 'benstrip_auth_v1';
 
 const TIMEZONES = {
-  'Honolulu, Hawaii': 'Pacific/Honolulu',
-  'Tokyo, Japan': 'Asia/Tokyo',
-  'Taipei, Taiwan': 'Asia/Taipei',
-  'Osaka, Japan': 'Asia/Tokyo',
+  'Maui': 'Pacific/Honolulu',
+  'Big Island': 'Pacific/Honolulu',
+  'Kauai': 'Pacific/Honolulu',
+  'Los Angeles': 'America/Los_Angeles',
+  'Las Vegas': 'America/Los_Angeles',
+  'New York': 'America/New_York',
+  'Baltimore': 'America/New_York',
 };
 
 function formatDate(d) {
@@ -27,9 +64,19 @@ function getCountdown(days) {
   if (days === 1) return 'TOMORROW';
   return `${days} days`;
 }
-function getCurrentLocation() {
+// All of these read one party's itinerary — passing no party means everyone,
+// which is what admin sees.
+function scopedItinerary(party) {
+  return party ? itineraryFor(party) : ITINERARY;
+}
+function tripNotStarted(party) {
+  const items = scopedItinerary(party);
+  if (items.length === 0) return true;
+  return getDaysUntil(items[0].date) > 0;
+}
+function getCurrentLocation(party) {
   const today = new Date(); today.setHours(0,0,0,0);
-  for (const item of ITINERARY) {
+  for (const item of scopedItinerary(party)) {
     if (item.type === 'hotel') {
       const s = new Date(item.date+'T00:00:00'); s.setHours(0,0,0,0);
       const e = new Date(item.endDate+'T00:00:00'); e.setHours(0,0,0,0);
@@ -38,9 +85,9 @@ function getCurrentLocation() {
   }
   return null;
 }
-function getNextItem() {
+function getNextItem(party) {
   const today = new Date(); today.setHours(0,0,0,0);
-  for (const item of ITINERARY) {
+  for (const item of scopedItinerary(party)) {
     const d = new Date(item.date+'T00:00:00'); d.setHours(0,0,0,0);
     if (d >= today) return item;
   }
@@ -50,9 +97,9 @@ function getDailyAffirmation() {
   const day = new Date().getDate() + new Date().getMonth() * 31;
   return AFFIRMATIONS[day % AFFIRMATIONS.length];
 }
-function getImminentFlight() {
+function getImminentFlight(party) {
   const now = Date.now();
-  for (const item of ITINERARY) {
+  for (const item of scopedItinerary(party)) {
     if (item.type !== 'flight' || !item.departureUtc) continue;
     const dep = new Date(item.departureUtc).getTime();
     const minsUntil = (dep - now) / 60_000;
@@ -69,12 +116,42 @@ function getNrtAlert() {
   return { days, item: nrtFlight };
 }
 
-function FujiArt({ size = 100 }) {
-  return <img src="/fuji.svg" alt="Mount Fuji" width={size} height={Math.round(size*0.8)} style={{ display:'block' }}/>;
+function Palm({ size = 100, className = '' }) {
+  return (
+    <svg
+      viewBox="0 0 100 80"
+      width={size}
+      height={Math.round(size * 0.8)}
+      className={`palm ${className}`}
+      aria-hidden="true"
+      style={{ display: 'block' }}
+    >
+      <g stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M 50 30 Q 32 20, 18 24"/>
+        <path d="M 50 30 Q 30 32, 14 42"/>
+        <path d="M 50 30 Q 34 42, 26 58"/>
+        <path d="M 50 30 Q 68 20, 82 24"/>
+        <path d="M 50 30 Q 70 32, 86 42"/>
+        <path d="M 50 30 Q 66 42, 74 58"/>
+        <path d="M 47 30 Q 52 45, 48 62 Q 46 70, 44 72" strokeWidth="2.6"/>
+      </g>
+      <g fill="currentColor" opacity="0.5">
+        <circle cx="26" cy="23" r="0.8"/>
+        <circle cx="22" cy="34" r="0.8"/>
+        <circle cx="30" cy="48" r="0.8"/>
+        <circle cx="74" cy="23" r="0.8"/>
+        <circle cx="78" cy="34" r="0.8"/>
+        <circle cx="70" cy="48" r="0.8"/>
+      </g>
+      <circle cx="52" cy="33" r="2.2" fill="currentColor"/>
+      <circle cx="47" cy="34" r="2" fill="currentColor"/>
+    </svg>
+  );
 }
+const FujiArt = Palm;
 
 // ── Live clock for Ben's current city ─────────────────────────────────────────
-function BenClock({ location, label = "Local time" }) {
+function BenClock({ location, label = "Local time", party }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
@@ -82,12 +159,23 @@ function BenClock({ location, label = "Local time" }) {
   }, []);
   const tz = location ? TIMEZONES[location] : null;
   const cityShort = location ? location.split(',')[0] : 'In transit';
-  if (!tz) return (
-    <div className="ben-clock">
-      <div className="ben-clock-label">{label}</div>
-      <div className="ben-clock-time">{cityShort} ✈️</div>
-    </div>
-  );
+  if (!tz) {
+    const pending = tripNotStarted(party);
+    return (
+      <div className="ben-clock">
+        <div className="ben-clock-label">{pending ? 'Hawaii 2027' : label}</div>
+        <div className="ben-clock-time">
+          <Icon name={pending ? 'Clock' : 'Plane'} size={16} />
+          <span>{pending ? 'Trip pending…' : cityShort}</span>
+        </div>
+        {pending && scopedItinerary(party).length > 0 && (
+          <div className="ben-clock-date">
+            {getCountdown(getDaysUntil(scopedItinerary(party)[0].date))} until wheels up
+          </div>
+        )}
+      </div>
+    );
+  }
   const time = now.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' });
   const date = now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' });
   return (
@@ -116,7 +204,7 @@ function PinScreen({ onSuccess }) {
       });
       if (res.ok) {
         const data = await res.json();
-        onSuccess(data.mode);
+        onSuccess(data.mode, data.travelerId);
         return;
       }
       const data = await res.json().catch(() => ({}));
@@ -141,7 +229,7 @@ function PinScreen({ onSuccess }) {
     <div className="pin-screen">
       <FujiArt size={140} />
       <div className="pin-title">HAWAII 27</div>
-      <div className="pin-sub">Summer 2027</div>
+      <div className="pin-sub">January 2027</div>
       <div className="pin-affirmation">"{affirmation}"</div>
 
       <div className="pin-dots">
@@ -229,16 +317,16 @@ function NotificationToggle() {
   if (state === 'checking') return null;
   if (state === 'ios-needs-install') return (
     <div className="notif-row notif-off" style={{lineHeight:1.4}}>
-      📱 To get note alerts on iPhone: tap Share → Add to Home Screen, then open from your home screen.
+      <Icon name="Smartphone" size={13} /> To get note alerts on iPhone: tap Share → Add to Home Screen, then open from your home screen.
     </div>
   );
   if (state === 'unsupported') return null;
-  if (state === 'granted') return <div className="notif-row notif-on">🔔 Note alerts are on</div>;
-  if (state === 'denied') return <div className="notif-row notif-off">🔕 Notifications blocked — enable in browser settings</div>;
+  if (state === 'granted') return <div className="notif-row notif-on"><Icon name="Bell" size={13} /> Note alerts are on</div>;
+  if (state === 'denied') return <div className="notif-row notif-off"><Icon name="BellOff" size={13} /> Notifications blocked — enable in browser settings</div>;
   return (
     <>
       <button className="notif-cta" onClick={enable} disabled={state === 'working'}>
-        {state === 'working' ? 'Setting up…' : '🔔 Turn on note alerts'}
+        {state === 'working' ? 'Setting up…' : <><Icon name="Bell" size={13} /> Turn on note alerts</>}
       </button>
       {errMsg && <div className="notif-row notif-off" style={{fontSize:'0.65rem'}}>{errMsg}</div>}
     </>
@@ -251,7 +339,7 @@ function NrtAlert({ alert }) {
   const when = alert.days === 0 ? 'TODAY' : alert.days === 1 ? 'TOMORROW' : `in ${alert.days} days`;
   return (
     <div className="nrt-alert">
-      <div className="nrt-alert-title">⚠️ NARITA — not Haneda</div>
+      <div className="nrt-alert-title"><Icon name="TriangleAlert" size={13} /> NARITA — not Haneda</div>
       <div className="nrt-alert-body">
         Your Tokyo → Taipei flight {when} departs from <b>NRT (Narita)</b>, not HND.
         Allow extra time — Narita is ~60–90 min from central Tokyo.
@@ -279,11 +367,13 @@ function ItinCard({ item }) {
   return (
     <div className={`itin-card ${open?'active':''} ${isPast?'past':''} ${isActive?'current':''} ${isNrt?'nrt':''}`} onClick={()=>setOpen(o=>!o)}>
       <div className="itin-card-top">
-        <div className={`itin-icon ${item.type}`}>{item.type==='flight'?'✈️':'🏨'}</div>
+        <div className={`itin-icon ${item.type}`}><Icon name={item.type==='flight'?'Plane':item.type==='dinner'?'UtensilsCrossed':'Hotel'} size={18} /></div>
         <div className="itin-info">
           <div className="itin-title">{item.title}</div>
           <div className="itin-sub">{item.subtitle}</div>
-          {isNrt && <div className="itin-nrt-tag">⚠️ NARITA airport</div>}
+          {item.booked && (
+            <div className="itin-booked"><Icon name="Check" size={10} /> Booked</div>
+          )}
         </div>
         <div>
           <div className="itin-date">{formatDate(item.date)}</div>
@@ -294,8 +384,8 @@ function ItinCard({ item }) {
         <div className="itin-detail" onClick={e=>e.stopPropagation()}>
           <div className="itin-detail-text">{item.detail}</div>
           {item.conf && <div className="itin-conf">Conf: <span>{item.conf}</span></div>}
-          {item.tip && <div className="itin-tip">💡 {item.tip}</div>}
-          {item.link && <button className="itin-link" onClick={handleLink}>{item.type==='flight'?'✈️':'🏨'} {item.link.label}</button>}
+          {item.tip && <div className="itin-tip"><Icon name="Lightbulb" size={13} /> {item.tip}</div>}
+          {item.link && <button className="itin-link" onClick={handleLink}><Icon name={item.type==='flight'?'Plane':item.type==='dinner'?'UtensilsCrossed':'Hotel'} size={14} /> {item.link.label}</button>}
         </div>
       )}
     </div>
@@ -317,7 +407,7 @@ function EatCard({ eat }) {
         <div className="eat-detail" onClick={e=>e.stopPropagation()}>
           <div className="eat-vibe">{eat.vibe}</div>
           <div className="eat-order">Order: <span>{eat.order}</span></div>
-          <a className="eat-map-btn" href={eat.maps} target="_blank" rel="noopener noreferrer">🗺️ Get Directions in Apple Maps</a>
+          <a className="eat-map-btn" href={eat.maps} target="_blank" rel="noopener noreferrer"><Icon name="Map" size={14} /> Get Directions in Apple Maps</a>
         </div>
       )}
     </div>
@@ -327,10 +417,10 @@ function EatCard({ eat }) {
 function DestBlock({ loc, data, isCurrent }) {
   return (
     <div>
-      <div className="section-title">{isCurrent ? `📍 You're in ${loc}` : `📌 ${loc}`}</div>
+      <TitleIcon name="MapPin">{isCurrent ? `You're in ${loc}` : loc}</TitleIcon>
       <div className="dest-card">
         <div className="dest-header">
-          <div className="dest-emoji">{data.emoji}</div>
+          <div className="dest-emoji"><Icon name={data.icon} size={26} /></div>
           <div className="dest-name">{loc}</div>
           <div className="dest-tagline">{data.tagline}</div>
         </div>
@@ -347,7 +437,7 @@ function DestBlock({ loc, data, isCurrent }) {
           ))}
         </div>
         <div className="dest-eats">
-          <div className="dest-tips-label">🍜 Where to eat</div>
+          <div className="dest-tips-label"><Icon name="UtensilsCrossed" size={13} /> Where to eat</div>
           {data.eats.map((e,i)=><EatCard key={i} eat={e}/>)}
         </div>
       </div>
@@ -356,7 +446,7 @@ function DestBlock({ loc, data, isCurrent }) {
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-function HomeTab({ currentLocation, nextItem, affirmation, recentNotes }) {
+function HomeTab({ currentLocation, nextItem, affirmation, recentNotes, party }) {
   const here = currentLocation && DESTINATIONS[currentLocation];
   const topEat = here?.eats?.[0];
   const topTip = here?.tips?.[0];
@@ -385,7 +475,7 @@ function HomeTab({ currentLocation, nextItem, affirmation, recentNotes }) {
 
       {here && (
         <>
-          <div className="section-title">⭐ Today in {currentLocation.split(',')[0]}</div>
+          <TitleIcon name="Star">Today in {currentLocation.split(',')[0]}</TitleIcon>
           <div className="rec-card">
             {topTip && (
               <div className="rec-tip">
@@ -395,10 +485,10 @@ function HomeTab({ currentLocation, nextItem, affirmation, recentNotes }) {
             )}
             {topEat && (
               <div className="rec-eat">
-                <div className="rec-eat-label">🍜 Try tonight</div>
+                <div className="rec-eat-label"><Icon name="UtensilsCrossed" size={13} /> Try tonight</div>
                 <div className="rec-eat-name">{topEat.name}</div>
                 <div className="rec-eat-vibe">{topEat.vibe.split('.')[0]}.</div>
-                <a className="eat-map-btn" href={topEat.maps} target="_blank" rel="noopener noreferrer">🗺️ Open in Maps</a>
+                <a className="eat-map-btn" href={topEat.maps} target="_blank" rel="noopener noreferrer"><Icon name="Map" size={14} /> Open in Maps</a>
               </div>
             )}
           </div>
@@ -407,11 +497,11 @@ function HomeTab({ currentLocation, nextItem, affirmation, recentNotes }) {
 
       {recentNotes.length > 0 && (
         <>
-          <div className="section-title">📬 Latest from D</div>
+          <TitleIcon name="Mail">Latest from D</TitleIcon>
           <div className="notes-list">
             {recentNotes.slice(0, 2).map(n => (
               <div key={n.id} className="note-item">
-                <div className="note-from">From Dakotah ✨</div>
+                <div className="note-from"><Icon name="Sparkles" size={11} /> From Dakotah</div>
                 <div className="note-msg">{n.message}</div>
               </div>
             ))}
@@ -423,103 +513,225 @@ function HomeTab({ currentLocation, nextItem, affirmation, recentNotes }) {
 }
 
 // ── Shopping List ─────────────────────────────────────────────────────────────
-const SHOPPING_CITIES = ['Anywhere', 'Tokyo', 'Osaka', 'Taipei'];
+// ── Group plans ──────────────────────────────────────────────────────────────
+// Things everyone is doing together. Admin creates them; travelers read them.
+function PlanVotes({ plan, me, onVote }) {
+  const votes = plan.votes || [];
+  const mine = votes.find(v => v.voter === me);
+  const yes = votes.filter(v => v.vote);
+  const no = votes.filter(v => !v.vote);
 
-function ShoppingList() {
-  const [items, setItems] = useState([]);
+  return (
+    <div className="vote-box">
+      <div className="vote-actions">
+        <button
+          className={`vote-btn yes ${mine?.vote === true ? 'on' : ''}`}
+          onClick={() => onVote(plan, true)}
+        >
+          <Icon name="Check" size={13} /> Yes
+        </button>
+        <button
+          className={`vote-btn no ${mine?.vote === false ? 'on' : ''}`}
+          onClick={() => onVote(plan, false)}
+        >
+          No
+        </button>
+        <span className="vote-tally">
+          {yes.length} yes · {no.length} no
+        </span>
+      </div>
+      {votes.length > 0 && (
+        <div className="vote-who">
+          {votes.map(v => (
+            <span key={v.voter} className={`vote-chip ${v.vote ? 'yes' : 'no'}`}>
+              {v.voter === me ? 'You' : authorLabel(v.voter)}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupPlans({ isAdmin, me }) {
+  const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [name, setName] = useState('');
-  const [city, setCity] = useState('Anywhere');
-  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const ALL = Object.keys(PARTIES);
+  const [form, setForm] = useState({
+    title: '', day: TOGETHER_DAYS[0] || TRIP_DAYS[0],
+    timeLabel: '', location: '', detail: '', kind: 'confirmed', parties: ALL,
+  });
+  const toggleParty = (id) => setForm(f => {
+    const has = f.parties.includes(id);
+    const next = has ? f.parties.filter(x => x !== id) : [...f.parties, id];
+    return { ...f, parties: next.length ? next : f.parties }; // never empty
+  });
 
-  useEffect(() => {
-    fetch('/api/shopping')
-      .then(r => r.ok ? r.json() : { items: [] })
-      .then(d => setItems(d.items || []))
+  const load = useCallback(() => {
+    fetch('/api/plans')
+      .then(r => r.json())
+      .then(d => setPlans(d.plans || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(load, [load]);
+
   const add = async () => {
-    if (!name.trim() || adding) return;
-    setAdding(true);
+    if (!form.title.trim() || busy) return;
+    setBusy(true);
     try {
-      const res = await fetch('/api/shopping', {
+      const res = await fetch('/api/plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), city }),
+        body: JSON.stringify(form),
       });
       if (res.ok) {
-        const { item } = await res.json();
-        setItems(prev => [item, ...prev]);
-        setName('');
+        const { plan } = await res.json();
+        setPlans(ps => [...ps, plan].sort((a, b) => String(a.day).localeCompare(String(b.day))));
+        setForm(f => ({ ...f, title: '', timeLabel: '', location: '', detail: '', parties: ALL }));
       }
-    } finally { setAdding(false); }
+    } catch (_) {} finally { setBusy(false); }
   };
 
-  const toggle = async (item) => {
-    const newDone = !item.done;
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, done: newDone } : i));
-    fetch(`/api/shopping/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ done: newDone }),
-    }).catch(() => {});
+  const remove = async (plan) => {
+    setPlans(ps => ps.filter(p => p.id !== plan.id));
+    try { await fetch(`/api/plans/${plan.id}`, { method: 'DELETE' }); } catch (_) { load(); }
   };
 
-  const remove = async (item) => {
-    setItems(prev => prev.filter(i => i.id !== item.id));
-    fetch(`/api/shopping/${item.id}`, { method: 'DELETE' }).catch(() => {});
+  const vote = async (plan, value) => {
+    // Optimistic — swap in your own vote, reconcile with the server after.
+    setPlans(ps => ps.map(p => p.id !== plan.id ? p : {
+      ...p,
+      votes: [...(p.votes || []).filter(v => v.voter !== me), { voter: me, vote: value }],
+    }));
+    try {
+      const res = await fetch(`/api/plans/${plan.id}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vote: value }),
+      });
+      if (res.ok) {
+        const { votes } = await res.json();
+        setPlans(ps => ps.map(p => p.id === plan.id ? { ...p, votes } : p));
+      }
+    } catch (_) { load(); }
   };
 
-  // Group by city
-  const groups = SHOPPING_CITIES.reduce((acc, c) => { acc[c] = []; return acc; }, {});
-  for (const it of items) {
-    const k = SHOPPING_CITIES.includes(it.city) ? it.city : 'Anywhere';
-    groups[k].push(it);
+  const byDay = {};
+  for (const pl of plans) {
+    const key = String(pl.day).slice(0, 10);
+    (byDay[key] = byDay[key] || []).push(pl);
   }
 
   return (
-    <div className="shop-block">
-      <div className="section-title">🛍️ Things to buy</div>
+    <div className="plans">
+      <TitleIcon name="Users">Group plans</TitleIcon>
 
-      <div className="shop-add">
-        <input
-          className="shop-input"
-          type="text"
-          placeholder="Add an item…"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
-        />
-        <select
-          className="shop-select"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        >
-          {SHOPPING_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <button className="shop-add-btn" onClick={add} disabled={!name.trim() || adding}>
-          +
-        </button>
-      </div>
+      {isAdmin && (
+        <div className="plan-form">
+          <div className="kind-toggle">
+            <button
+              className={`kind-btn ${form.kind === 'confirmed' ? 'on' : ''}`}
+              onClick={() => setForm(f => ({ ...f, kind: 'confirmed' }))}
+            >
+              <Icon name="Check" size={12} /> It's happening
+            </button>
+            <button
+              className={`kind-btn ${form.kind === 'vote' ? 'on' : ''}`}
+              onClick={() => setForm(f => ({ ...f, kind: 'vote' }))}
+            >
+              <Icon name="Users" size={12} /> Put it to a vote
+            </button>
+          </div>
+          <div className="who-row">
+            <span className="who-label">For</span>
+            {ALL.map(id => (
+              <button
+                key={id}
+                className={`who-chip ${form.parties.includes(id) ? 'on' : ''}`}
+                onClick={() => toggleParty(id)}
+              >
+                {PARTIES[id].short}
+              </button>
+            ))}
+          </div>
+          <input
+            className="plan-input"
+            placeholder={form.kind === 'vote' ? 'What should we do?' : form.parties.length === ALL.length ? 'What is everyone doing?' : 'What are they doing?'}
+            value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+          />
+          <div className="plan-form-row">
+            <select
+              className="plan-select"
+              value={form.day}
+              onChange={e => setForm(f => ({ ...f, day: e.target.value }))}
+            >
+              {TRIP_DAYS.map(d => (
+                <option key={d} value={d}>
+                  {formatDate(d)}{TOGETHER_DAYS.includes(d) ? ' · everyone' : ''}
+                </option>
+              ))}
+            </select>
+            <input
+              className="plan-input small"
+              placeholder="Time"
+              value={form.timeLabel}
+              onChange={e => setForm(f => ({ ...f, timeLabel: e.target.value }))}
+            />
+          </div>
+          <input
+            className="plan-input"
+            placeholder="Where"
+            value={form.location}
+            onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+          />
+          <input
+            className="plan-input"
+            placeholder={form.kind === 'vote' ? 'Anything they should know' : 'Reservation details, confirmation number…'}
+            value={form.detail}
+            onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
+          />
+          <button className="plan-add" onClick={add} disabled={!form.title.trim() || busy}>
+            <Icon name="Plus" size={14} /> {busy ? 'Adding…' : form.kind === 'vote' ? 'Ask everyone' : 'Add group plan'}
+          </button>
+        </div>
+      )}
 
       {loading ? (
-        <div className="no-notes" style={{padding:'1rem 1.2rem'}}>Loading…</div>
-      ) : items.length === 0 ? (
-        <div className="no-notes" style={{padding:'1rem 1.2rem'}}>Nothing on the list yet.</div>
+        <div className="money-empty">Loading…</div>
+      ) : plans.length === 0 ? (
+        <div className="money-empty">
+          {isAdmin ? 'No group plans yet — add the first one.' : 'No group plans yet.'}
+        </div>
       ) : (
-        <div className="shop-groups">
-          {SHOPPING_CITIES.map(c => groups[c].length === 0 ? null : (
-            <div key={c} className="shop-group">
-              <div className="shop-group-label">{c === 'Anywhere' ? '🌍 Anywhere' : c === 'Tokyo' ? '🗼 Tokyo' : c === 'Osaka' ? '🏯 Osaka' : '🏙️ Taipei'}</div>
-              {groups[c].map(item => (
-                <div key={item.id} className={`shop-item ${item.done ? 'done' : ''}`}>
-                  <button className="shop-check" onClick={() => toggle(item)} aria-label="toggle">
-                    {item.done ? '✓' : ''}
-                  </button>
-                  <span className="shop-name">{item.name}</span>
-                  <button className="shop-x" onClick={() => remove(item)} aria-label="remove">×</button>
+        <div className="plan-list">
+          {Object.entries(byDay).map(([day, dayPlans]) => (
+            <div key={day} className="plan-day">
+              <div className="plan-day-label">
+                {formatDate(day)}
+                {TOGETHER_DAYS.includes(day) && <span className="plan-everyone">everyone on Maui</span>}
+              </div>
+              {dayPlans.map(pl => (
+                <div key={pl.id} className={`plan-item ${pl.kind === 'vote' ? 'proposal' : ''}`}>
+                  <div className="plan-item-main">
+                    <div className="plan-item-title">{pl.title}</div>
+                    <div className="plan-item-sub">
+                      {[pl.time_label, pl.location].filter(Boolean).join(' · ')}
+                      {pl.parties && pl.parties.length > 0 && (
+                        <span className="plan-for"> · {pl.parties.map(id => PARTIES[id]?.short || id).join(' + ')}</span>
+                      )}
+                    </div>
+                    {pl.detail && <div className="plan-item-detail">{pl.detail}</div>}
+                    {pl.kind === 'vote' && <PlanVotes plan={pl} me={me} onVote={vote} />}
+                  </div>
+                  {isAdmin && (
+                    <button className="plan-remove" onClick={() => remove(pl)} aria-label="Remove plan">
+                      <Icon name="Trash2" size={14} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -530,67 +742,510 @@ function ShoppingList() {
   );
 }
 
-function NowTab({ currentLocation }) {
+// ── Trip timeline ────────────────────────────────────────────────────────────
+// One lane per party across the same day axis, so you can read who overlaps
+// with whom at a glance. Consecutive days in one place collapse into a bar.
+function laneSegments(partyId) {
+  const segs = [];
+  TRIP_DAYS.forEach((day, i) => {
+    const cell = DAY_GRID[partyId]?.[day];
+    if (!cell) return;
+    const prev = segs[segs.length - 1];
+    if (prev && prev.end === i - 1 && prev.where === cell.where && !cell.move && !prev.move) {
+      prev.end = i;
+    } else {
+      segs.push({ start: i, end: i, where: cell.where, move: cell.move });
+    }
+  });
+  return segs.map(sg => ({ ...sg, len: sg.end - sg.start + 1 }));
+}
+
+function TripTimeline({ only = 'all' }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const parties = only === 'all' ? Object.values(PARTIES) : [PARTIES[only]].filter(Boolean);
+  const cols = `repeat(${TRIP_DAYS.length}, minmax(0, 1fr))`;
+
+  return (
+    <div className="tl">
+      <div className="tl-row">
+        <div className="tl-label" />
+        <div className="tl-track axis" style={{ gridTemplateColumns: cols }}>
+          {TRIP_DAYS.map((d, i) => (
+            <div key={d} className={`tl-tick ${d === today ? 'now' : ''}`} style={{ gridColumn: i + 1 }}>
+              {Number(d.slice(8))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {parties.map(pt => (
+        <Fragment key={pt.id}>
+          <div className="tl-row">
+            <div className="tl-label">{pt.short}</div>
+            <div className="tl-track" style={{ gridTemplateColumns: cols }}>
+              {TRIP_DAYS.map((d, i) => (
+                <div
+                  key={d}
+                  className={`tl-cell ${TOGETHER_DAYS.includes(d) ? 'together' : ''}`}
+                  style={{ gridColumn: i + 1, gridRow: 1 }}
+                />
+              ))}
+              {laneSegments(pt.id).map(sg => (
+                <div
+                  key={sg.start}
+                  className={`tl-seg ${sg.where === 'OGG' ? 'maui' : ''} ${sg.move ? 'move' : ''}`}
+                  style={{ gridColumn: `${sg.start + 1} / span ${sg.len}`, gridRow: 1 }}
+                  title={sg.move || sg.where}
+                >
+                  {sg.move && <Icon name="Plane" size={9} />}
+                  <span className="tl-seg-label">{sg.where}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="tl-row stays">
+            <div className="tl-label sub">stay</div>
+            <div className="tl-track" style={{ gridTemplateColumns: cols }}>
+              {staySegments(pt.id).map(sg => (
+                <div
+                  key={sg.start}
+                  className={`tl-stay ${sg.booked ? 'booked' : 'plan'}`}
+                  style={{ gridColumn: `${sg.start + 1} / span ${sg.len}`, gridRow: 1 }}
+                  title={`${sg.label}${sg.booked ? '' : ' — not booked'}`}
+                >
+                  {sg.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Fragment>
+      ))}
+
+      <div className="timeline-key">
+        <span><i className="key-dot together" /> Everyone on Maui {formatDate(TOGETHER_DAYS[0])}–{formatDate(TOGETHER_DAYS[TOGETHER_DAYS.length - 1])}</span>
+      </div>
+    </div>
+  );
+}
+
+function NowTab({ currentLocation, isAdmin, party }) {
   const here = currentLocation && DESTINATIONS[currentLocation];
   if (!here) {
     return (
       <div style={{padding:'2rem 1.2rem'}}>
-        <BenClock location={null} label="You're" />
+        <BenClock location={null} label="You're" party={party} />
         <div className="no-notes" style={{marginTop:'1rem'}}>
-          ✈️ You're between cities right now. Check Itinerary for what's next.
+          {tripNotStarted(party)
+            ? 'You haven\'t left yet. The Trip tab has your full timeline.'
+            : "You're between cities right now. Check Itinerary for what's next."}
         </div>
-        <ShoppingList />
+        <GroupPlans isAdmin={isAdmin} me={isAdmin ? 'admin' : party} />
       </div>
     );
   }
   return (
     <>
       <div style={{padding:'0.6rem 1.2rem 0'}}>
-        <BenClock location={currentLocation} label="Local time" />
+        <BenClock location={currentLocation} label="Local time" party={party} />
       </div>
       <DestBlock loc={currentLocation} data={here} isCurrent={true}/>
-      <ShoppingList />
+      <GroupPlans isAdmin={isAdmin} me={isAdmin ? 'admin' : party} />
     </>
   );
 }
 
-function NotesTab({ notes }) {
-  if (notes.length === 0) {
-    return <div className="no-notes" style={{marginTop:'2rem'}}>No notes yet — check back soon!</div>;
-  }
-  // Group by date
+// Shared thread — everyone signed in can post, and posting notifies the others.
+function authorLabel(author) {
+  const t = TRAVELERS[author];
+  if (t) return PARTIES[t.party]?.label || t.displayName;
+  return author === 'admin' ? 'Admin' : author;
+}
+
+function MessagesTab({ me }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(() => {
+    fetch('/api/messages')
+      .then(r => r.json())
+      .then(d => setMessages(d.messages || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  const send = async () => {
+    const body = draft.trim();
+    if (!body || sending) return;
+    setSending(true); setError('');
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body }),
+      });
+      if (res.ok) {
+        const { message } = await res.json();
+        setMessages(ms => [...ms, message]);
+        setDraft('');
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setError(d?.error || `Error ${res.status}`);
+      }
+    } catch (_) {
+      setError('Network error — try again.');
+    } finally { setSending(false); }
+  };
+
   const groups = {};
-  for (const n of notes) {
-    const day = new Date(n.created_at).toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-    (groups[day] = groups[day] || []).push(n);
+  for (const m of messages) {
+    const day = new Date(m.created_at).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    (groups[day] = groups[day] || []).push(m);
   }
+
   return (
     <>
-      {Object.entries(groups).map(([day, dayNotes]) => (
-        <div key={day}>
-          <div className="section-title">{day}</div>
-          <div className="notes-list">
-            {dayNotes.map(n => (
-              <div key={n.id} className="note-item">
-                <div className="note-from">From Dakotah ✨</div>
-                <div className="note-msg">{n.message}</div>
-                <div className="note-time">{new Date(n.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</div>
+      <TitleIcon name="Mail">Messages</TitleIcon>
+
+      {loading ? (
+        <div className="money-empty">Loading…</div>
+      ) : messages.length === 0 ? (
+        <div className="money-empty">No messages yet — say something.</div>
+      ) : (
+        Object.entries(groups).map(([day, dayMsgs]) => (
+          <div key={day}>
+            <div className="msg-day">{day}</div>
+            <div className="notes-list">
+              {dayMsgs.map(m => (
+                <div key={m.id} className={`msg ${m.author === me ? 'mine' : ''}`}>
+                  <div className="msg-from">{m.author === me ? 'You' : authorLabel(m.author)}</div>
+                  <div className="msg-body">{m.body}</div>
+                  <div className="msg-time">
+                    {new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+
+      <div className="msg-compose">
+        <textarea
+          className="sender-input sender-textarea"
+          placeholder="Message everyone…"
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+        />
+        {error && <div className="pin-error" style={{ marginTop: 0 }}>{error}</div>}
+        <button className="sender-submit" onClick={send} disabled={sending || !draft.trim()}>
+          <Icon name="Send" size={14} /> {sending ? 'Sending…' : 'Send to everyone'}
+        </button>
+      </div>
+    </>
+  );
+}
+
+
+function ItineraryTab({ party = null, isAdmin = false }) {
+  // Organisers and admin can flip between parties. Everyone else gets the
+  // whole-group graphic but only their own list underneath.
+  const canSwitch = isAdmin || (party && PARTIES[party]?.seesAll);
+  const [sel, setSel] = useState(party || 'all');
+  const listParty = canSwitch ? sel : party;
+  const items = listParty === 'all' || !listParty ? ITINERARY : itineraryFor(listParty);
+  const order = party ? [party, ...Object.keys(PARTIES).filter(id => id !== party)] : Object.keys(PARTIES);
+
+  return (
+    <>
+      <TitleIcon name="Calendar">Trip timeline</TitleIcon>
+      {canSwitch && (
+        <div className="party-filter">
+          {order.map(id => (
+            <button key={id} className={`party-chip ${sel === id ? 'on' : ''}`} onClick={() => setSel(id)}>
+              {PARTIES[id].short}{id === party ? <span className="chip-you">you</span> : null}
+            </button>
+          ))}
+          <button className={`party-chip ${sel === 'all' ? 'on' : ''}`} onClick={() => setSel('all')}>
+            All
+          </button>
+        </div>
+      )}
+      <TripTimeline only={canSwitch ? sel : 'all'} />
+      <TitleIcon name="Compass">
+        {listParty && listParty !== 'all' ? `${PARTIES[listParty].label} — itinerary` : 'Full itinerary'}
+      </TitleIcon>
+      <div className="itinerary-list">
+        {items.map(item => <ItinCard key={item.id} item={item}/>)}
+      </div>
+    </>
+  );
+}
+
+// ── Money ─────────────────────────────────────────────────────────────────────
+function fmtPoints(n) { return n.toLocaleString('en-US'); }
+
+function BookingCard({ booking }) {
+  const [open, setOpen] = useState(false);
+  const awards = awardCount(booking);
+  const cpp = centsPerPoint(booking);
+  const cppAll = centsPerPoint(booking, true);
+  const cppSrc = centsPerSourcePoint(booking);
+  const saved = booking.cashValue - booking.cash;
+
+  return (
+    <div className={`money-card ${open ? 'open' : ''}`} onClick={() => setOpen(o => !o)}>
+      <div className="money-card-top">
+        <div className="money-card-info">
+          <div className="money-card-title">{booking.title}</div>
+          <div className="money-card-sub">
+            {booking.guests ? `${booking.guests} · ` : ''}
+            {formatDate(booking.date)}{booking.endDate ? ` – ${formatDate(booking.endDate)}` : ''}
+          </div>
+        </div>
+        <div className="money-card-cost">
+          {booking.cash > 0 && <div className="money-card-cash">{money(booking.cash)}</div>}
+          {booking.points > 0 && (
+            <div className={booking.cash > 0 ? 'money-card-points' : 'money-card-cash'}>
+              {fmtPoints(booking.points)} pts
+            </div>
+          )}
+          {awards > 0 && <div className="money-card-award">+ {awards} free night</div>}
+        </div>
+      </div>
+
+      {open && (
+        <div className="money-detail" onClick={e => e.stopPropagation()}>
+          {booking.room && <div className="money-detail-room">{booking.room}</div>}
+          <div className="money-rows">
+            {booking.cash > 0 && (
+              <div className="money-row"><span>Out of pocket</span><span>{money(booking.cash)}</span></div>
+            )}
+            {booking.pointsPerNight && (
+              <div className="money-row">
+                <span>Per night</span>
+                <span>{fmtPoints(booking.pointsPerNight)} pts × {booking.nights}</span>
+              </div>
+            )}
+            {booking.points > 0 && (
+              <div className="money-row"><span>Points used</span><span>{fmtPoints(booking.points)} {booking.program || 'pts'}</span></div>
+            )}
+            {sourcePoints(booking) !== null && (
+              <div className="money-row">
+                <span>Transferred from</span>
+                <span>
+                  {fmtPoints(sourcePoints(booking))} {booking.transfer.program}
+                  {booking.transfer.bonus ? ` · ${Math.round(booking.transfer.bonus * 100)}% bonus` : ''}
+                </span>
+              </div>
+            )}
+            {(booking.awards || []).map((a, i) => (
+              <div key={i} className="money-row">
+                <span>{AWARDS[a.type]?.label || 'Award night'}{(a.count || 1) > 1 ? ` ×${a.count}` : ''}</span>
+                <span>worth {fmtPoints((AWARDS[a.type]?.pointsValue || 0) * (a.count || 1))} pts</span>
+              </div>
+            ))}
+            {booking.cashValue != null && (
+              <div className="money-row total"><span>Cash rate would've been</span><span>{money(booking.cashValue)}</span></div>
+            )}
+          </div>
+
+          {booking.cashValue != null ? (
+            <div className="money-verdict">
+              <div className="money-verdict-big">Saved {money(saved)}</div>
+              {cpp !== null && (
+                <div className="money-verdict-sub">
+                  {cpp.toFixed(1)}¢ per {booking.program || 'point'}
+                  {cppAll !== null && awards > 0 && ` · ${cppAll.toFixed(1)}¢ once you price the free night at its full value`}
+                  {cppSrc !== null && (
+                    <> · <strong>{cppSrc.toFixed(2)}¢ per {booking.transfer.program} point</strong>, which is what you actually spent</>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="money-verdict">
+              <div className="money-verdict-sub">
+                Add the cash rate for these dates and this'll score the redemption.
+              </div>
+            </div>
+          )}
+
+          {booking.gifted && <div className="money-gift"><Icon name="Sparkles" size={13} /> Gifted — no points or cash of yours went into this</div>}
+          {booking.paidBy && booking.paidBy !== booking.party && (
+            <div className="money-gift"><Icon name="Users" size={13} /> {PARTIES[booking.party]?.label}'s room, paid for by {PARTIES[booking.paidBy]?.label}</div>
+          )}
+          {booking.note && <div className="money-note">{booking.note}</div>}
+          {booking.conf && <div className="itin-conf">Conf: <span>{booking.conf}</span></div>}
+          {AWARDS[booking.awards?.[0]?.type]?.note && (
+            <div className="money-tip"><Icon name="Lightbulb" size={13} /> {AWARDS[booking.awards[0].type].note}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoneyTotals({ bookings }) {
+  const t = totals(bookings);
+  return (
+    <div className="money-totals">
+      <div className="money-stat">
+        <div className="money-stat-value">{money(t.cash)}</div>
+        <div className="money-stat-label">Cash</div>
+      </div>
+      <div className="money-stat">
+        <div className="money-stat-value">{fmtPoints(t.points)}</div>
+        <div className="money-stat-label">Points</div>
+      </div>
+      <div className="money-stat">
+        <div className="money-stat-value">{t.awards}</div>
+        <div className="money-stat-label">Free {t.awards === 1 ? 'night' : 'nights'}</div>
+      </div>
+    </div>
+  );
+}
+
+function MoneyBlock({ label, bookings, emptyText }) {
+  return (
+    <div className="money-block">
+      <div className="section-title">{label}</div>
+      {bookings.length === 0 ? (
+        <div className="money-empty">{emptyText}</div>
+      ) : (
+        <>
+          <MoneyTotals bookings={bookings} />
+          <div className="money-list">
+            {bookings.map(b => <BookingCard key={b.id} booking={b} />)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Travelers see only their own party's spend; admin sees everyone's.
+// What a trip is worth, for parties who aren't footing the bill.
+function ValueTab({ party }) {
+  const items = bookingsOwnedBy(party).filter(b => b.cashValue != null);
+  const total = tripValue(items);
+  const unpriced = bookingsOwnedBy(party).filter(b => b.cashValue == null);
+
+  return (
+    <>
+      <TitleIcon name="Wallet">Value of your trip</TitleIcon>
+      <div className="value-hero">
+        <div className="value-big">{money(total)}</div>
+        <div className="value-sub">what the booked parts would cost at cash rates</div>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="money-empty">Nothing priced yet.</div>
+      ) : (
+        <div className="money-list">
+          {items.map(b => (
+            <div key={b.id} className="money-card static">
+              <div className="money-card-top">
+                <div className="money-card-info">
+                  <div className="money-card-title">{b.title}</div>
+                  <div className="money-card-sub">
+                    {formatDate(b.date)}{b.endDate ? ` – ${formatDate(b.endDate)}` : ''}
+                    {b.room ? ` · ${b.room}` : ''}
+                  </div>
+                </div>
+                <div className="money-card-cost">
+                  <div className="money-card-cash">{money(b.cashValue)}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {unpriced.length > 0 && (
+        <div className="money-note" style={{ margin: '0.8rem 1.2rem 0' }}>
+          Not yet priced: {unpriced.map(b => b.title).join(', ')}.
+        </div>
+      )}
+    </>
+  );
+}
+
+function MoneyTab({ travelerId, isAdmin }) {
+  const myParty = travelerId ? TRAVELERS[travelerId]?.party : null;
+  if (!isAdmin && myParty && PARTIES[myParty]?.money === 'value') {
+    return <ValueTab party={myParty} />;
+  }
+  const parties = isAdmin
+    ? Object.values(PARTIES)
+    : [PARTIES[myParty]].filter(Boolean);
+  const scope = parties.flatMap(pt => bookingsFor(pt.id));
+  const t = totals(scope);
+  const shared = isAdmin ? SHARED_BUDGET : (myParty ? sharedFor(myParty) : []);
+
+  return (
+    <>
+      <TitleIcon name="Wallet">
+        {isAdmin ? 'Trip spend — everyone' : 'Your spend'}
+      </TitleIcon>
+      <MoneyTotals bookings={scope} />
+      {scope.length > 0 && (
+        <div className="money-grand">
+          {fmtPoints(t.points)} points{t.awards > 0 ? ` + ${t.awards} free night` : ''} and {money(t.cash)} out of pocket
+        </div>
+      )}
+
+      {isAdmin ? (
+        parties.map(pt => (
+          <MoneyBlock
+            key={pt.id}
+            label={pt.label}
+            bookings={bookingsFor(pt.id)}
+            emptyText="Nothing booked yet."
+          />
+        ))
+      ) : scope.length === 0 ? (
+        <div className="money-empty">Nothing booked under your name yet.</div>
+      ) : (
+        <div className="money-list">
+          {scope.map(b => <BookingCard key={b.id} booking={b} />)}
+        </div>
+      )}
+
+      {shared.length > 0 && (
+        <div className="money-block">
+          <div className="section-title">
+            Shared costs · {money(shared.reduce((n, b) => n + (isAdmin ? lineTotal(b) : shareOf(b)), 0))}
+          </div>
+          <div className="money-list">
+            {shared.map(b => (
+              <div key={b.id || b.label} className="money-card static">
+                <div className="money-card-top">
+                  <div className="money-card-info">
+                    <div className="money-card-title">{b.label}</div>
+                    <div className="money-card-sub">
+                      {b.note}
+                      {b.parties && ` ${b.parties.map(id => PARTIES[id].label).join(' and ')} each cover one.`}
+                    </div>
+                  </div>
+                  <div className="money-card-cost">
+                    <div className="money-card-cash">{money(isAdmin ? lineTotal(b) : shareOf(b))}</div>
+                    <div className="money-card-points">{isAdmin ? `${money(shareOf(b))} each` : 'yours'}</div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
-      ))}
-    </>
-  );
-}
-
-function ItineraryTab() {
-  return (
-    <>
-      <div className="section-title">🗓 Full Itinerary</div>
-      <div className="itinerary-list">
-        {ITINERARY.map(item => <ItinCard key={item.id} item={item}/>)}
-      </div>
+      )}
     </>
   );
 }
@@ -602,7 +1257,7 @@ function BottomNav({ tab, setTab, tabs }) {
         const Icon = t.Icon;
         return (
           <button key={t.id} className={`bottom-nav-btn ${tab===t.id?'active':''}`} onClick={()=>setTab(t.id)}>
-            <span className="bottom-nav-icon"><Icon strokeWidth={2} /></span>
+            <span className="bottom-nav-icon"><Icon strokeWidth={2.2} /></span>
             <span className="bottom-nav-label">{t.label}</span>
           </button>
         );
@@ -614,16 +1269,25 @@ function BottomNav({ tab, setTab, tabs }) {
 const BEN_TABS = [
   { id: 'home', Icon: Home, label: 'Home' },
   { id: 'now', Icon: MapPin, label: 'Now' },
-  { id: 'notes', Icon: Mail, label: 'Notes' },
+  { id: 'notes', Icon: Mail, label: 'Messages' },
   { id: 'itinerary', Icon: Calendar, label: 'Trip' },
+  { id: 'money', Icon: Wallet, label: 'Money' },
 ];
 
 // ── Ben App ───────────────────────────────────────────────────────────────────
-function TripApp({ onSignOut }) {
+function TripApp({ onSignOut, travelerId }) {
   const [tab, setTab] = useState('home');
+  const theme = TRAVELERS[travelerId]?.theme || DEFAULT_THEME;
+  const party = TRAVELERS[travelerId]?.party || null;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    return () => { document.documentElement.dataset.theme = DEFAULT_THEME; };
+  }, [theme]);
+
   const [notes, setNotes] = useState([]);
-  const currentLocation = getCurrentLocation();
-  const nextItem = getNextItem();
+  const currentLocation = getCurrentLocation(party);
+  const nextItem = getNextItem(party);
   const affirmation = getDailyAffirmation();
 
   useEffect(() => {
@@ -632,26 +1296,24 @@ function TripApp({ onSignOut }) {
 
   // Mark notes read when Notes tab is opened
   useEffect(() => {
-    if (tab === 'notes' && notes.some(n => !n.read)) {
-      fetch('/api/notes', { method: 'POST' }).catch(()=>{});
-    }
-  }, [tab, notes]);
+  }, [tab]);
 
   return (
     <div className="app with-bottom-nav">
       <div className="header">
         <div className="header-left" style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-          <img src="/fuji.svg" alt="Fuji" width={36} height={29} style={{opacity:0.9}}/>
-          <div><h1>HAWAII 27</h1><p>Summer 2027</p></div>
+          <Palm size={36} />
+          <div><h1>HAWAII 27</h1><p>January 2027</p></div>
         </div>
         <button className="header-signout" onClick={onSignOut}>Sign out</button>
       </div>
 
       <div className="tab-content">
-        {tab === 'home' && <HomeTab currentLocation={currentLocation} nextItem={nextItem} affirmation={affirmation} recentNotes={notes} />}
-        {tab === 'now' && <NowTab currentLocation={currentLocation} />}
-        {tab === 'notes' && <NotesTab notes={notes} />}
-        {tab === 'itinerary' && <ItineraryTab />}
+        {tab === 'home' && <HomeTab currentLocation={currentLocation} nextItem={nextItem} affirmation={affirmation} recentNotes={notes} party={party} />}
+        {tab === 'now' && <NowTab currentLocation={currentLocation} party={party} />}
+        {tab === 'notes' && <MessagesTab me={travelerId} />}
+        {tab === 'itinerary' && <ItineraryTab party={party} />}
+        {tab === 'money' && <MoneyTab travelerId={travelerId} />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} tabs={BEN_TABS} />
@@ -739,7 +1401,7 @@ function SendForm({ password }) {
 
   if (status === 'sent') {
     return (
-      <div className="sender-success">✅ Note sent to Ben!<br/><br/>
+      <div className="sender-success"><Icon name="CheckCircle2" size={16} /> Note sent to Ben!<br/><br/>
         <button className="sender-submit" style={{width:'100%'}} onClick={()=>setStatus('idle')}>Send Another</button>
       </div>
     );
@@ -754,7 +1416,7 @@ function SendForm({ password }) {
       />
       {status==='error' && <div style={{color:'#ff6b6b',fontSize:'0.8rem'}}>{errorMsg || 'Send failed.'}</div>}
       <button className="sender-submit" onClick={send} disabled={status==='sending'||!message.trim()}>
-        {status==='sending'?'Sending...':'Send Note ✈️'}
+        {status==='sending'?'Sending...':<><Icon name="Send" size={14} /> Send Note</>}
       </button>
     </div>
   );
@@ -778,7 +1440,7 @@ function WishWellButton({ password }) {
       const res = await fetch('/api/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: 'Dakotah wishes you well! Have a safe flight 😘', password }),
+        body: JSON.stringify({ message: 'Dakotah wishes you well! Have a safe flight', password }),
       });
       setStatus(res.ok ? 'sent' : 'error');
     } catch (_) { setStatus('error'); }
@@ -793,13 +1455,13 @@ function WishWellButton({ password }) {
 
   return (
     <div className="wish-well">
-      <div className="wish-well-label">✈️ {flightLine}</div>
+      <div className="wish-well-label"><Icon name="Plane" size={14} /> {flightLine}</div>
       <div className="wish-well-when">{when}</div>
       {status === 'sent' ? (
-        <div className="wish-well-sent">💕 Wishes sent!</div>
+        <div className="wish-well-sent"><Icon name="Heart" size={14} /> Wishes sent!</div>
       ) : (
         <button className="wish-well-btn" onClick={send} disabled={status === 'sending'}>
-          {status === 'sending' ? 'Sending…' : status === 'error' ? 'Try again' : '💕 Wish him well 😘'}
+          {status === 'sending' ? 'Sending…' : status === 'error' ? 'Try again' : <><Icon name="Heart" size={14} /> Wish him well</>}
         </button>
       )}
     </div>
@@ -821,7 +1483,7 @@ function SenderHomeTab({ currentLocation, nextItem, password }) {
           <div className="next-up-countdown">{getCountdown(getDaysUntil(nextItem.date))}</div>
         </div>
       )}
-      <div className="section-title">💌 Write him a note</div>
+      <TitleIcon name="Mail">Write him a note</TitleIcon>
       <div style={{padding:'0 1.2rem'}}>
         <SendForm password={password} />
       </div>
@@ -830,9 +1492,10 @@ function SenderHomeTab({ currentLocation, nextItem, password }) {
 }
 
 const SENDER_TABS = [
-  { id: 'home', Icon: Send, label: 'Send' },
+  { id: 'home', Icon: Mail, label: 'Messages' },
   { id: 'now', Icon: MapPin, label: 'Now' },
   { id: 'itinerary', Icon: Calendar, label: 'Trip' },
+  { id: 'money', Icon: Wallet, label: 'Money' },
 ];
 
 // ── Sender Page ─────────────────────────────────────────────────────
@@ -866,23 +1529,24 @@ function SenderPage({ onSignOut }) {
     <div className="app with-bottom-nav">
       <div className="header">
         <div className="header-left" style={{display:'flex',alignItems:'center',gap:'0.6rem'}}>
-          <img src="/fuji.svg" alt="Fuji" width={36} height={29} style={{opacity:0.9}}/>
-          <div><h1>SEND A NOTE</h1><p>Summer 2027</p></div>
+          <Palm size={36} />
+          <div><h1>SEND A NOTE</h1><p>January 2027</p></div>
         </div>
         <button className="header-signout" onClick={signOut}>Sign out</button>
       </div>
 
       <div className="tab-content">
-        {tab === 'home' && <SenderHomeTab currentLocation={currentLocation} nextItem={nextItem} password={password} />}
+        {tab === 'home' && <MessagesTab me="admin" />}
         {tab === 'now' && (
           <>
             <div style={{padding:'0.6rem 1.2rem 0'}}>
               <WishWellButton password={password} />
             </div>
-            <NowTab currentLocation={currentLocation} />
+            <NowTab currentLocation={currentLocation} isAdmin />
           </>
         )}
-        {tab === 'itinerary' && <ItineraryTab />}
+        {tab === 'itinerary' && <ItineraryTab isAdmin />}
+        {tab === 'money' && <MoneyTab isAdmin />}
       </div>
 
       <BottomNav tab={tab} setTab={setTab} tabs={SENDER_TABS} />
@@ -895,6 +1559,7 @@ export default function Page() {
   const [hydrated, setHydrated] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [mode, setMode] = useState('traveler');
+  const [travelerId, setTravelerId] = useState(null);
 
   useEffect(() => {
     // Clean up any stale auth state from older client builds
@@ -905,13 +1570,17 @@ export default function Page() {
     fetch('/api/auth/me')
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
-        if (data?.authed && data.mode) { setMode(data.mode); setAuthed(true); }
+        if (data?.authed && data.mode) {
+          setMode(data.mode);
+          setTravelerId(data.travelerId || null);
+          setAuthed(true);
+        }
       })
       .catch(() => {})
       .finally(() => setHydrated(true));
   }, []);
 
-  const handleAuth = (m) => { setMode(m); setAuthed(true); };
+  const handleAuth = (m, tid) => { setMode(m); setTravelerId(tid || null); setAuthed(true); };
 
   const signOut = async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (_) {}
@@ -921,5 +1590,5 @@ export default function Page() {
   if (!hydrated) return null;
   if (!authed) return <PinScreen onSuccess={handleAuth}/>;
   if (mode === 'sender') return <SenderPage onSignOut={signOut}/>;
-  return <TripApp onSignOut={signOut}/>;
+  return <TripApp onSignOut={signOut} travelerId={travelerId}/>;
 }

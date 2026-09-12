@@ -47,7 +47,7 @@ export async function POST(req) {
     // Fan out push notifications. Don't fail the request if this errors.
     try {
       await sendPushToAll({
-        title: 'New note from Dakotah ✨',
+        title: 'New note from Dakotah',
         body: trimmed.length > 120 ? trimmed.slice(0, 117) + '...' : trimmed,
       });
     } catch (_) {}
