@@ -448,19 +448,73 @@ function DestBlock({ loc, data, isCurrent }) {
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 // Whole-trip scoreboard for the countdown period. Everyone sees the value;
 // only the party footing the bill sees what it actually cost.
+// Every booked thing on the trip, by party, with what it's worth in cash.
+function TripBreakdown({ onClose }) {
+  const travel = BOOKINGS.filter(b => b.type !== 'other');
+  const t = totals(travel);
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" onClick={e => e.stopPropagation()}>
+        <div className="sheet-head">
+          <TitleIcon name="Wallet">Whole trip value</TitleIcon>
+          <button className="sheet-close" onClick={onClose} aria-label="Close">×</button>
+        </div>
+        <div className="sheet-body">
+          {[['flight', 'Flights', 'Plane'], ['hotel', 'Hotels', 'Hotel']].map(([type, label, icon]) => {
+            const rows = travel.filter(b => b.type === type);
+            if (!rows.length) return null;
+            const sub = rows.reduce((n, b) => n + (b.cashValue ?? 0), 0);
+            return (
+              <div key={type} className="bk-group">
+                <div className="bk-party">
+                  <span><Icon name={icon} size={12} /> {label}</span>
+                  <span>{money(sub)}</span>
+                </div>
+                {rows.map(b => (
+                  <div key={b.id} className="bk-row">
+                    <div className="bk-what">
+                      <div className="bk-title">{b.title}</div>
+                      <div className="bk-sub">
+                        {PARTIES[b.party]?.short} · {formatDate(b.date)}{b.endDate ? ` – ${formatDate(b.endDate)}` : ''}
+                        {b.gifted ? ' · gifted' : ''}
+                      </div>
+                    </div>
+                    <div className={`bk-val ${b.cashValue == null ? 'muted' : ''}`}>
+                      {b.cashValue == null ? 'not priced' : money(b.cashValue)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          <div className="bk-total">
+            <div className="bk-row big"><span>Whole trip value</span><span>{money(t.cashValue)}</span></div>
+            <div className="bk-row"><span>Spent in cash so far</span><span>{money(t.cash)}</span></div>
+          </div>
+          <div className="bk-note">Flights and hotels that are booked. Plans aren't counted until they're confirmed. Rental cars aren't included.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TripSoFar() {
   // Flights and hotels only — the cars are a running cost, not a booking to value.
   // Whole-group figures, so everyone sees them; it isn't anyone's individual bill.
+  const [open, setOpen] = useState(false);
   const t = totals(BOOKINGS.filter(b => b.type !== 'other'));
   return (
-    <div className="sofar">
-      <div className="sofar-label">The whole trip, all three of you</div>
-      <div className="sofar-big">{money(t.cashValue)}</div>
-      <div className="sofar-sub">of travel booked, at what it would cost in cash</div>
-      <div className="sofar-spend">
-        <div className="sofar-row"><span>Spent in cash so far</span><span>{money(t.cash)}</span></div>
+    <>
+      <div className="sofar tappable" onClick={() => setOpen(true)} role="button" tabIndex={0}>
+        <div className="sofar-label">The whole trip, all three of you</div>
+        <div className="sofar-big">{money(t.cashValue)}</div>
+        <div className="sofar-sub">of travel booked, at what it would cost in cash · tap for every booking</div>
+        <div className="sofar-spend">
+          <div className="sofar-row"><span>Spent in cash so far</span><span>{money(t.cash)}</span></div>
+        </div>
       </div>
-    </div>
+      {open && <TripBreakdown onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

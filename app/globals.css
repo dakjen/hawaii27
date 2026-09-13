@@ -1916,3 +1916,100 @@ html, body {
   border-radius: 20px;
   padding: 0.25rem 0.65rem;
 }
+
+/* Tap-through breakdown sheet */
+.sofar.tappable { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.sofar.tappable:active { border-color: var(--rose); }
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(var(--deep-rgb), 0.55);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  background: var(--navy-light);
+  border-radius: 18px 18px 0 0;
+  border: 1px solid var(--card-border);
+  border-bottom: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 0.9rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.sheet-close {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  color: var(--white);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sheet-body {
+  overflow-y: auto;
+  padding: 0.6rem 1.2rem calc(env(safe-area-inset-bottom, 0px) + 1.4rem);
+}
+
+.bk-group { margin-bottom: 1.1rem; }
+
+.bk-party {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rose);
+  padding: 0.5rem 0 0.35rem;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 0.35rem;
+}
+
+.bk-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.8rem;
+  padding: 0.35rem 0;
+  font-size: 0.82rem;
+  color: var(--white);
+  font-variant-numeric: tabular-nums;
+}
+
+.bk-row.big { font-size: 1rem; font-weight: 800; color: var(--rose); }
+
+.bk-what { min-width: 0; }
+.bk-title { font-weight: 600; }
+.bk-sub { font-size: 0.68rem; color: var(--gray); }
+.bk-val { font-weight: 600; white-space: nowrap; }
+.bk-val.muted { color: var(--gray); font-weight: 400; font-size: 0.72rem; }
+
+.bk-total {
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule, var(--card-border));
+}
+
+.bk-note { font-size: 0.68rem; color: var(--gray); margin-top: 0.8rem; line-height: 1.4; }
+
+.bk-party > span:first-child { display: inline-flex; align-items: center; gap: 0.35rem; }
