@@ -9,7 +9,7 @@ import {
 import {
   ITINERARY, DESTINATIONS, AFFIRMATIONS,
   TRAVELERS, PARTIES, DEFAULT_THEME, itineraryFor,
-  AWARDS, BOOKINGS, bookingsFor, bookingsOwnedBy, tripValue, awardCount, centsPerPoint, totals, money,
+  AWARDS, BOOKINGS, bookingsFor, bookingsOwnedBy, tripValue, pointsByProgram, awardCount, centsPerPoint, totals, money,
   sourcePoints, centsPerSourcePoint,
   SHARED_BUDGET, sharedFor, shareOf, lineTotal,
   TRIP_DAYS, TOGETHER_DAYS, DAY_GRID, staySegments,
@@ -446,6 +446,24 @@ function DestBlock({ loc, data, isCurrent }) {
 }
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
+// Whole-trip scoreboard for the countdown period. Everyone sees the value;
+// only the party footing the bill sees what it actually cost.
+function TripSoFar() {
+  // Flights and hotels only — the cars are a running cost, not a booking to value.
+  // Whole-group figures, so everyone sees them; it isn't anyone's individual bill.
+  const t = totals(BOOKINGS.filter(b => b.type !== 'other'));
+  return (
+    <div className="sofar">
+      <div className="sofar-label">The whole trip, all three of you</div>
+      <div className="sofar-big">{money(t.cashValue)}</div>
+      <div className="sofar-sub">of travel booked, at what it would cost in cash</div>
+      <div className="sofar-spend">
+        <div className="sofar-row"><span>Spent in cash so far</span><span>{money(t.cash)}</span></div>
+      </div>
+    </div>
+  );
+}
+
 function HomeTab({ currentLocation, nextItem, affirmation, recentNotes, party }) {
   const here = currentLocation && DESTINATIONS[currentLocation];
   const topEat = here?.eats?.[0];
@@ -458,6 +476,8 @@ function HomeTab({ currentLocation, nextItem, affirmation, recentNotes, party })
       </div>
 
       <NrtAlert alert={nrt} />
+
+      {tripNotStarted(party) && <TripSoFar />}
 
       {nextItem && (
         <div className="next-up">
@@ -1138,6 +1158,7 @@ function ValueTab({ party }) {
   const items = bookingsOwnedBy(party).filter(b => b.cashValue != null);
   const total = tripValue(items);
   const unpriced = bookingsOwnedBy(party).filter(b => b.cashValue == null);
+  const pts = pointsByProgram(bookingsOwnedBy(party));
 
   return (
     <>
@@ -1145,6 +1166,17 @@ function ValueTab({ party }) {
       <div className="value-hero">
         <div className="value-big">{money(total)}</div>
         <div className="value-sub">what the booked parts would cost at cash rates</div>
+        {pts.length > 0 && (
+          <div className="value-points">
+            <div className="value-points-label">Booked with</div>
+            {pts.map(pp => (
+              <div key={pp.program} className="value-points-row">
+                <span>{pp.program.includes('Award') ? `${pp.points} × ` : fmtPoints(pp.points)}</span>
+                <span>{pp.program}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {items.length === 0 ? (

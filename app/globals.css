@@ -1792,3 +1792,77 @@ html, body {
 }
 
 .value-sub { font-size: 0.72rem; color: var(--gray); margin-top: 0.2rem; }
+
+.value-points {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--card-border);
+  text-align: left;
+}
+
+.value-points-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-bottom: 0.35rem;
+}
+
+.value-points-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--off-white);
+  padding: 0.15rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.value-points-row span:first-child { font-weight: 700; color: var(--white); }
+
+/* Whole-trip scoreboard on Home, pre-trip */
+.sofar {
+  margin: 1rem 1.2rem 0;
+  padding: 1.1rem 1.2rem;
+  border-radius: 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+.sofar-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.sofar-big {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--rose);
+  line-height: 1.1;
+  margin-top: 0.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.sofar-sub { font-size: 0.72rem; color: var(--gray); margin-top: 0.15rem; }
+
+.sofar-spend {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.sofar-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--white);
+  padding: 0.15rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sofar-row.muted { font-weight: 500; font-size: 0.74rem; color: var(--off-white); }
