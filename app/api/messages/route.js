@@ -21,9 +21,12 @@ export async function GET(req) {
   try {
     await initDb();
     const sql = getDb();
+    // The thread only shows the last week. Older rows stay in the table but
+    // drop off the page.
     const messages = await sql`
       SELECT id, author, body, created_at
       FROM messages
+      WHERE created_at > NOW() - INTERVAL '7 days'
       ORDER BY created_at ASC
       LIMIT 500
     `;
