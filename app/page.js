@@ -1625,8 +1625,34 @@ function SenderPage({ onSignOut }) {
   );
 }
 
+// ── Keep the installed app current ───────────────────────────────────────────
+// iOS home-screen apps resume the old page rather than reloading. Whenever the
+// app comes back to the foreground, ask the server which build it's on and
+// reload if a newer one has been deployed.
+function useAutoRefresh() {
+  useEffect(() => {
+    const mine = process.env.NEXT_PUBLIC_BUILD_ID;
+    if (!mine) return;
+    let checking = false;
+    const check = async () => {
+      if (checking || document.visibilityState !== 'visible') return;
+      checking = true;
+      try {
+        const r = await fetch('/api/version', { cache: 'no-store' });
+        const { id } = await r.json();
+        if (id && id !== 'unknown' && id !== mine) window.location.reload();
+      } catch (_) {} finally { checking = false; }
+    };
+    document.addEventListener('visibilitychange', check);
+    const t = setInterval(check, 5 * 60_000);
+    check();
+    return () => { document.removeEventListener('visibilitychange', check); clearInterval(t); };
+  }, []);
+}
+
 // ── Root with cookie-backed auth ─────────────────────────────────────────────
 export default function Page() {
+  useAutoRefresh();
   const [hydrated, setHydrated] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [mode, setMode] = useState('traveler');

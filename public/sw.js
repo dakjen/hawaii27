@@ -2,7 +2,7 @@ self.addEventListener('install', (e) => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', (event) => {
-  let data = { title: "Ben's Trip", body: 'New note for you!' };
+  let data = { title: 'Hawaii 27', body: 'New message' };
   try { if (event.data) data = { ...data, ...event.data.json() }; } catch (_) {}
   event.waitUntil(
     self.registration.showNotification(data.title, {
@@ -10,7 +10,7 @@ self.addEventListener('push', (event) => {
       icon: '/favicon.svg',
       badge: '/favicon.svg',
       vibrate: [120, 60, 120],
-      tag: 'bens-trip-note',
+      tag: 'hawaii27-message',
       renotify: true,
       data: { url: '/' },
     })
