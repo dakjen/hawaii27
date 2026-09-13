@@ -15,12 +15,12 @@ export async function GET(req) {
     const sql = getDb();
     const plans = session.mode === 'sender'
       ? await sql`
-          SELECT id, title, detail, day, time_label, location, kind, parties, created_at
+          SELECT id, title, detail, day, time_label, location, kind, parties, link, created_at
           FROM group_plans
           ORDER BY day ASC, created_at ASC
         `
       : await sql`
-          SELECT id, title, detail, day, time_label, location, kind, parties, created_at
+          SELECT id, title, detail, day, time_label, location, kind, parties, link, created_at
           FROM group_plans
           WHERE parties IS NULL OR ${myParty} = ANY(parties)
           ORDER BY day ASC, created_at ASC
@@ -39,7 +39,7 @@ export async function GET(req) {
 export async function POST(req) {
   if (!requireAuth(req, 'sender')) return Response.json({ error: 'Admin only' }, { status: 403 });
   try {
-    const { title, detail, day, timeLabel, location, kind, parties } = await req.json();
+    const { title, detail, day, timeLabel, location, kind, parties, link } = await req.json();
     if (typeof title !== 'string' || !title.trim() || title.length > 200) {
       return Response.json({ error: 'Invalid title' }, { status: 400 });
     }
@@ -51,10 +51,11 @@ export async function POST(req) {
     const finalParties = Array.isArray(parties) && parties.length && parties.length < valid.length
       ? parties.filter(x => valid.includes(x))
       : null; // everyone
+    const finalLink = typeof link === 'string' && /^https?:\/\//i.test(link.trim()) ? link.trim() : null;
     await initDb();
     const sql = getDb();
     const [plan] = await sql`
-      INSERT INTO group_plans (title, detail, day, time_label, location, kind, parties)
+      INSERT INTO group_plans (title, detail, day, time_label, location, kind, parties, link)
       VALUES (
         ${title.trim()},
         ${detail?.trim?.() || null},
@@ -62,9 +63,10 @@ export async function POST(req) {
         ${timeLabel?.trim?.() || null},
         ${location?.trim?.() || null},
         ${finalKind},
-        ${finalParties}
+        ${finalParties},
+        ${finalLink}
       )
-      RETURNING id, title, detail, day, time_label, location, kind, parties, created_at
+      RETURNING id, title, detail, day, time_label, location, kind, parties, link, created_at
     `;
     return Response.json({ plan: { ...plan, votes: [] } });
   } catch (e) {

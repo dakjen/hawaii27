@@ -563,8 +563,8 @@ function PlanVotes({ plan, me, onVote }) {
       {votes.length > 0 && (
         <div className="vote-who">
           {votes.map(v => (
-            <span key={v.voter} className={`vote-chip ${v.vote ? 'yes' : 'no'}`}>
-              {v.voter === me ? 'You' : authorLabel(v.voter)}
+            <span key={v.voter} className={`vote-chip ${v.vote ? 'yes' : 'no'}`} title={authorLabel(v.voter)}>
+              {authorInitials(v.voter)}
             </span>
           ))}
         </div>
@@ -573,14 +573,19 @@ function PlanVotes({ plan, me, onVote }) {
   );
 }
 
+// Tab switches shouldn't wait on the network: keep the last fetch around and
+// render it immediately while a fresh one loads behind it.
+let plansCache = null;
+let messagesCache = null;
+
 function GroupPlans({ isAdmin, me }) {
-  const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState(() => plansCache || []);
+  const [loading, setLoading] = useState(() => plansCache === null);
   const [busy, setBusy] = useState(false);
   const ALL = Object.keys(PARTIES);
   const [form, setForm] = useState({
     title: '', day: TOGETHER_DAYS[0] || TRIP_DAYS[0],
-    timeLabel: '', location: '', detail: '', kind: 'confirmed', parties: ALL,
+    timeLabel: '', location: '', detail: '', link: '', kind: 'confirmed', parties: ALL,
   });
   const toggleParty = (id) => setForm(f => {
     const has = f.parties.includes(id);
@@ -591,12 +596,13 @@ function GroupPlans({ isAdmin, me }) {
   const load = useCallback(() => {
     fetch('/api/plans')
       .then(r => r.json())
-      .then(d => setPlans(d.plans || []))
+      .then(d => { plansCache = d.plans || []; setPlans(plansCache); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(load, [load]);
+  useEffect(() => { plansCache = plans; }, [plans]);
 
   const add = async () => {
     if (!form.title.trim() || busy) return;
@@ -610,7 +616,7 @@ function GroupPlans({ isAdmin, me }) {
       if (res.ok) {
         const { plan } = await res.json();
         setPlans(ps => [...ps, plan].sort((a, b) => String(a.day).localeCompare(String(b.day))));
-        setForm(f => ({ ...f, title: '', timeLabel: '', location: '', detail: '', parties: ALL }));
+        setForm(f => ({ ...f, title: '', timeLabel: '', location: '', detail: '', link: '', parties: ALL }));
       }
     } catch (_) {} finally { setBusy(false); }
   };
@@ -714,6 +720,13 @@ function GroupPlans({ isAdmin, me }) {
             value={form.detail}
             onChange={e => setForm(f => ({ ...f, detail: e.target.value }))}
           />
+          <input
+            className="plan-input"
+            placeholder="Link (website, menu, map)"
+            inputMode="url"
+            value={form.link}
+            onChange={e => setForm(f => ({ ...f, link: e.target.value }))}
+          />
           <button className="plan-add" onClick={add} disabled={!form.title.trim() || busy}>
             <Icon name="Plus" size={14} /> {busy ? 'Adding…' : form.kind === 'vote' ? 'Ask everyone' : 'Add group plan'}
           </button>
@@ -745,6 +758,11 @@ function GroupPlans({ isAdmin, me }) {
                       )}
                     </div>
                     {pl.detail && <div className="plan-item-detail">{pl.detail}</div>}
+                    {pl.link && (
+                      <a className="plan-link" href={pl.link} target="_blank" rel="noopener noreferrer">
+                        <Icon name="Map" size={13} /> See this place
+                      </a>
+                    )}
                     {pl.kind === 'vote' && <PlanVotes plan={pl} me={me} onVote={vote} />}
                   </div>
                   {isAdmin && (
@@ -881,9 +899,23 @@ function authorLabel(author) {
   return author === 'admin' ? 'Admin' : author;
 }
 
+function authorInitials(author) {
+  const t = TRAVELERS[author];
+  if (t) return PARTIES[t.party]?.initials || t.displayName[0];
+  return author === 'admin' ? 'D' : (author || '?')[0].toUpperCase();
+}
+
+function Avatar({ author, title }) {
+  return (
+    <span className="avatar" title={title || authorLabel(author)} aria-label={authorLabel(author)}>
+      {authorInitials(author)}
+    </span>
+  );
+}
+
 function MessagesTab({ me }) {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [messages, setMessages] = useState(() => messagesCache || []);
+  const [loading, setLoading] = useState(() => messagesCache === null);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -891,10 +923,12 @@ function MessagesTab({ me }) {
   const load = useCallback(() => {
     fetch('/api/messages')
       .then(r => r.json())
-      .then(d => setMessages(d.messages || []))
+      .then(d => { messagesCache = d.messages || []; setMessages(messagesCache); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { messagesCache = messages; }, [messages]);
 
   useEffect(() => {
     load();
@@ -945,11 +979,13 @@ function MessagesTab({ me }) {
             <div className="msg-day">{day}</div>
             <div className="notes-list">
               {dayMsgs.map(m => (
-                <div key={m.id} className={`msg ${m.author === me ? 'mine' : ''}`}>
-                  <div className="msg-from">{m.author === me ? 'You' : authorLabel(m.author)}</div>
-                  <div className="msg-body">{m.body}</div>
-                  <div className="msg-time">
-                    {new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                <div key={m.id} className={`msg-row ${m.author === me ? 'mine' : ''}`}>
+                  <Avatar author={m.author} title={m.author === me ? 'You' : undefined} />
+                  <div className="msg">
+                    <div className="msg-body">{m.body}</div>
+                    <div className="msg-time">
+                      {new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1324,6 +1360,9 @@ function TripApp({ onSignOut, travelerId }) {
 
   useEffect(() => {
     fetch('/api/notes').then(r=>r.json()).then(d => setNotes(d.notes || [])).catch(()=>{});
+    // Warm the tabs that hit the database so opening them is instant.
+    fetch('/api/plans').then(r=>r.json()).then(d => { plansCache = d.plans || []; }).catch(()=>{});
+    fetch('/api/messages').then(r=>r.json()).then(d => { messagesCache = d.messages || []; }).catch(()=>{});
   }, []);
 
   // Mark notes read when Notes tab is opened
@@ -1619,7 +1658,16 @@ export default function Page() {
     setAuthed(false);
   };
 
-  if (!hydrated) return null;
+  // Paint something immediately rather than a blank page while the cookie is checked.
+  if (!hydrated) {
+    return (
+      <div className="pin-screen splash">
+        <Palm size={140} />
+        <div className="pin-title">HAWAII 27</div>
+        <div className="pin-sub">January 2027</div>
+      </div>
+    );
+  }
   if (!authed) return <PinScreen onSuccess={handleAuth}/>;
   if (mode === 'sender') return <SenderPage onSignOut={signOut}/>;
   return <TripApp onSignOut={signOut} travelerId={travelerId}/>;
