@@ -470,20 +470,30 @@ function TripBreakdown({ onClose }) {
                   <span><Icon name={icon} size={12} /> {label}</span>
                   <span>{money(sub)}</span>
                 </div>
-                {rows.map(b => (
-                  <div key={b.id} className="bk-row">
-                    <div className="bk-what">
-                      <div className="bk-title">{b.title}</div>
-                      <div className="bk-sub">
-                        {PARTIES[b.party]?.short} · {formatDate(b.date)}{b.endDate ? ` – ${formatDate(b.endDate)}` : ''}
-                        {b.gifted ? ' · gifted' : ''}
-                      </div>
+                {Object.values(PARTIES).map(pt => {
+                  const mine = rows.filter(b => b.party === pt.id);
+                  if (!mine.length) return null;
+                  const psub = mine.reduce((n, b) => n + (b.cashValue ?? 0), 0);
+                  return (
+                    <div key={pt.id} className="bk-sub-group">
+                      <div className="bk-who"><span>{pt.label}</span><span>{money(psub)}</span></div>
+                      {mine.map(b => (
+                        <div key={b.id} className="bk-row">
+                          <div className="bk-what">
+                            <div className="bk-title">{b.title}</div>
+                            <div className="bk-sub">
+                              {formatDate(b.date)}{b.endDate ? ` – ${formatDate(b.endDate)}` : ''}
+                              {b.gifted ? ' · gifted' : ''}
+                            </div>
+                          </div>
+                          <div className={`bk-val ${b.cashValue == null ? 'muted' : ''}`}>
+                            {b.cashValue == null ? 'not priced' : money(b.cashValue)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className={`bk-val ${b.cashValue == null ? 'muted' : ''}`}>
-                      {b.cashValue == null ? 'not priced' : money(b.cashValue)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })}
