@@ -910,7 +910,7 @@ function TripTimeline({ only = 'all' }) {
             <div className="tl-track" style={{ gridTemplateColumns: cols }}>
               {staySegments(pt.id).map(sg => (
                 <div
-                  key={sg.start}
+                  key={sg.id}
                   className={`tl-stay ${sg.booked ? 'booked' : 'plan'}`}
                   style={{ gridColumn: `${sg.start + 1} / span ${sg.len}`, gridRow: 1 }}
                   title={`${sg.label}${sg.booked ? '' : ' — not booked'}`}
