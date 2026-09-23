@@ -355,6 +355,7 @@ function ItinCard({ item }) {
   const isPast = days < 0 && (!item.endDate || getDaysUntil(item.endDate) < 0);
   const isActive = item.endDate ? (days <= 0 && getDaysUntil(item.endDate) > 0) : days === 0;
   const isNrt = item.type === 'flight' && item.title.includes('Narita');
+  const isNote = item.type === 'note';
 
   const handleLink = () => {
     if (!item.link) return;
@@ -367,7 +368,7 @@ function ItinCard({ item }) {
   return (
     <div className={`itin-card ${open?'active':''} ${isPast?'past':''} ${isActive?'current':''} ${isNrt?'nrt':''}`} onClick={()=>setOpen(o=>!o)}>
       <div className="itin-card-top">
-        <div className={`itin-icon ${item.type}`}><Icon name={item.type==='flight'?'Plane':item.type==='dinner'?'UtensilsCrossed':'Hotel'} size={18} /></div>
+        <div className={`itin-icon ${item.type}`}><Icon name={item.type==='flight'?'Plane':item.type==='dinner'?'UtensilsCrossed':item.type==='note'?'Users':'Hotel'} size={18} /></div>
         <div className="itin-info">
           <div className="itin-title">{item.title}</div>
           <div className="itin-sub">{item.subtitle}</div>

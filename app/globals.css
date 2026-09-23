@@ -2025,3 +2025,5 @@ html, body {
   padding: 0.25rem 0 0.1rem;
   font-variant-numeric: tabular-nums;
 }
+
+.itin-icon.note { background: var(--tan-dim); border: 1px solid rgba(var(--accent-rgb), 0.3); }
