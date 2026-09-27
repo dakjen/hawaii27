@@ -48,6 +48,7 @@ const TIMEZONES = {
   'Las Vegas': 'America/Los_Angeles',
   'New York': 'America/New_York',
   'Baltimore': 'America/New_York',
+  'Washington': 'America/New_York',
 };
 
 function formatDate(d) {
@@ -453,6 +454,7 @@ function DestBlock({ loc, data, isCurrent }) {
 function TripBreakdown({ onClose }) {
   const travel = BOOKINGS.filter(b => b.type !== 'other');
   const t = totals(travel);
+  const spent = totals(BOOKINGS).cash;
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" onClick={e => e.stopPropagation()}>
@@ -500,9 +502,9 @@ function TripBreakdown({ onClose }) {
           })}
           <div className="bk-total">
             <div className="bk-row big"><span>Whole trip value</span><span>{money(t.cashValue)}</span></div>
-            <div className="bk-row"><span>Spent in cash so far</span><span>{money(t.cash)}</span></div>
+            <div className="bk-row"><span>Spent in cash so far</span><span>{money(spent)}</span></div>
           </div>
-          <div className="bk-note">Flights and hotels that are booked. Plans aren't counted until they're confirmed. Rental cars aren't included.</div>
+          <div className="bk-note">Value covers booked flights and hotels; plans aren't counted until they're confirmed. Cash spent includes the rental car.</div>
         </div>
       </div>
     </div>
@@ -510,10 +512,11 @@ function TripBreakdown({ onClose }) {
 }
 
 function TripSoFar() {
-  // Flights and hotels only — the cars are a running cost, not a booking to value.
-  // Whole-group figures, so everyone sees them; it isn't anyone's individual bill.
+  // Value counts flights and hotels; cash counts everything actually paid,
+  // including the rental car. Whole-group figures, so everyone sees them.
   const [open, setOpen] = useState(false);
   const t = totals(BOOKINGS.filter(b => b.type !== 'other'));
+  const spent = totals(BOOKINGS).cash;
   return (
     <>
       <div className="sofar tappable" onClick={() => setOpen(true)} role="button" tabIndex={0}>
@@ -521,7 +524,7 @@ function TripSoFar() {
         <div className="sofar-big">{money(t.cashValue)}</div>
         <div className="sofar-sub">of travel booked, at what it would cost in cash · tap for every booking</div>
         <div className="sofar-spend">
-          <div className="sofar-row"><span>Spent in cash so far</span><span>{money(t.cash)}</span></div>
+          <div className="sofar-row"><span>Spent in cash so far</span><span>{money(spent)}</span></div>
         </div>
       </div>
       {open && <TripBreakdown onClose={() => setOpen(false)} />}
