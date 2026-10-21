@@ -2161,3 +2161,57 @@ html, body {
   line-height: 1.45;
   margin-top: 0.3rem;
 }
+
+/* ── Today's plan on the Now tab ─────────────────────────────────────────── */
+.plan-now {
+  margin: 1rem 1.2rem 0;
+  padding: 0.85rem 0.95rem 0.7rem;
+  background: var(--card-bg, #fff);
+  border-radius: 14px;
+  border-left: 3px solid rgba(var(--accent-rgb), 0.85);
+}
+.plan-now-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb), 1);
+}
+.plan-now-date { margin-left: auto; color: var(--muted, #6C6C78); letter-spacing: 0.04em; }
+.plan-now-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--ink, #1a1a1a);
+  margin: 0.2rem 0 0.45rem;
+}
+.plan-now-row {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.3rem 0;
+  font-size: 0.82rem;
+  border-top: 1px solid var(--hairline, #EEEEF2);
+}
+.plan-now-when {
+  flex: 0 0 4.2rem;
+  font-weight: 700;
+  color: var(--muted, #6C6C78);
+  font-size: 0.74rem;
+  padding-top: 0.1rem;
+}
+.plan-now-what {
+  flex: 1;
+  color: var(--ink, #1a1a1a);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.plan-now-foot {
+  font-size: 0.7rem;
+  color: var(--muted, #6C6C78);
+  margin-top: 0.5rem;
+  font-style: italic;
+}

@@ -14,7 +14,7 @@ import {
   sourcePoints, centsPerSourcePoint,
   SHARED_BUDGET, sharedFor, shareOf, lineTotal,
   TRIP_DAYS, TOGETHER_DAYS, DAY_GRID, staySegments,
-  PLAN, planFor,
+  PLAN, planFor, planOn,
 } from '../lib/data';
 
 const LUCIDE = {
@@ -937,6 +937,41 @@ function TripTimeline({ only = 'all' }) {
   );
 }
 
+
+// ── Today's plan, for the Now tab ─────────────────────────────────────────────
+// Deliberately soft: it shows what is loosely happening without implying
+// anybody has to be anywhere.
+function PlanNow({ party }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const days = party ? planFor(party) : PLAN;
+  if (!days.length) return null;
+  const day = planOn(today, party) || days.find(d => d.date >= today) || null;
+  if (!day) return null;
+  const isToday = day.date === today;
+
+  return (
+    <div className="plan-now">
+      <div className="plan-now-head">
+        <Icon name="Compass" size={13} />
+        <span>{isToday ? 'Today, loosely' : 'Coming up'}</span>
+        {!isToday && <span className="plan-now-date">{formatDate(day.date)}</span>}
+      </div>
+      <div className="plan-now-title">{day.title}</div>
+      {day.entries.map((e, i) => (
+        <div className="plan-now-row" key={i}>
+          <span className="plan-now-when">{e.when}</span>
+          <span className="plan-now-what">
+            {e.title}
+            {e.open && <span className="plan-chip open">Optional</span>}
+            {e.book && <span className="plan-chip book">Not booked yet</span>}
+          </span>
+        </div>
+      ))}
+      <div className="plan-now-foot">Nothing here is fixed \u2014 come and go as you like.</div>
+    </div>
+  );
+}
+
 function NowTab({ currentLocation, isAdmin, party }) {
   const here = currentLocation && DESTINATIONS[currentLocation];
   if (!here) {
@@ -948,6 +983,7 @@ function NowTab({ currentLocation, isAdmin, party }) {
             ? 'You haven\'t left yet. The Trip tab has your full timeline.'
             : "You're between cities right now. Check Itinerary for what's next."}
         </div>
+        <PlanNow party={party} />
         <GroupPlans isAdmin={isAdmin} me={isAdmin ? 'admin' : party} />
       </div>
     );
@@ -958,6 +994,7 @@ function NowTab({ currentLocation, isAdmin, party }) {
         <BenClock location={currentLocation} label="Local time" party={party} />
       </div>
       <DestBlock loc={currentLocation} data={here} isCurrent={true}/>
+      <PlanNow party={party} />
       <GroupPlans isAdmin={isAdmin} me={isAdmin ? 'admin' : party} />
     </>
   );
