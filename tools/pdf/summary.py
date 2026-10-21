@@ -59,6 +59,7 @@ out.best = d.BOOKINGS
   .map(b => ({ title: b.title, who: b.guests, points: b.points, cpp: d.centsPerPoint(b) }))
   .sort((a, b) => b.cpp - a.cpp).slice(0, 5);
 out.counts = { bookings: d.BOOKINGS.length, items: d.ITINERARY.length };
+out.hilton = d.HILTON_LEDGER;
 
 // Every currency that paid for something, with the bookings it paid for and
 // the account the points were transferred from.
@@ -379,6 +380,96 @@ def market_page(c, f):
                  % f['benchmark']['asOf'])
 
 
+
+def hilton_page(c, f):
+    """Every Hilton point that went in from 25 March, and every one that came out."""
+    L = f['hilton']
+    c.setFillColor(INK); c.rect(0, H - 1.2*inch, W, 1.2*inch, fill=1, stroke=0)
+    c.setFillColor(colors.white); c.setFont('Helvetica-Bold', 16)
+    c.drawString(M, H - 0.72*inch, 'THE HILTON ACCOUNTS, FROM 25 MARCH')
+    c.setFillColor(ACCENT); c.setFont('Helvetica', 9)
+    c.drawString(M, H - 0.95*inch, 'The day the first points purchase for this trip went in')
+    y = H - 1.62*inch
+
+    c.setFillColor(BODY); c.setFont('Helvetica', 9.4)
+    for ln in ['Hilton is the biggest points line of the trip and the hardest to read, because the',
+               'rooms were paid from balances rather than from single transfers. So here is the',
+               'account itself: everything credited since 25 March, and the four rooms it paid for.']:
+        c.drawString(M, y, ln); y -= 13
+    y -= 0.22*inch
+
+    KIND = {'buy': 'bought', 'amex': 'transferred', 'refund': 'refunded'}
+    for acct in L['accounts']:
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 11.5)
+        c.drawString(M, y, acct['who'] + "\u2019s account")
+        c.setStrokeColor(colors.HexColor('#DDDDE2')); c.setLineWidth(0.6)
+        c.line(M, y - 6, W - M, y - 6)
+        y -= 20
+
+        tot = {'buy': 0, 'amex': 0, 'refund': 0}
+        amex_known = 0
+        amex_unknown = 0
+        cash = 0
+        for r in acct['credits']:
+            tot[r['kind']] += r['points']
+            cash += r.get('cash', 0)
+            if r['kind'] == 'amex':
+                if r.get('amex'): amex_known += r['amex']
+                else: amex_unknown += r['points']
+            c.setFillColor(GREY); c.setFont('Helvetica', 8.4)
+            c.drawString(M + 0.2*inch, y, r['date'])
+            c.setFillColor(BODY); c.setFont('Helvetica', 8.8)
+            c.drawString(M + 1.0*inch, y, r['what'])
+            if r.get('amex'):
+                c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.2)
+                c.drawRightString(M + 5.0*inch, y, 'from %s Amex' % pts(r['amex']))
+            if r.get('cash'):
+                c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.2)
+                c.drawRightString(M + 5.0*inch, y, 'for %s' % money2(r['cash']))
+            c.setFillColor(INK); c.setFont('Helvetica-Bold', 8.8)
+            c.drawRightString(W - M - 0.05*inch, y, '+' + pts(r['points']))
+            y -= 13
+
+        y -= 4
+        c.setStrokeColor(colors.HexColor('#EEEEF1')); c.line(M + 0.2*inch, y + 6, W - M, y + 6)
+        y -= 6
+        for k in ('buy', 'amex', 'refund'):
+            if not tot[k]: continue
+            c.setFillColor(GREY); c.setFont('Helvetica', 8.6)
+            c.drawString(M + 0.2*inch, y, KIND[k])
+            c.setFillColor(BODY); c.setFont('Helvetica-Bold', 8.6)
+            c.drawRightString(W - M - 0.05*inch, y, pts(tot[k]))
+            y -= 13
+        total_in = sum(tot.values())
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
+        c.drawString(M + 0.2*inch, y, 'in since 25 March')
+        c.drawRightString(W - M - 0.05*inch, y, pts(total_in))
+        y -= 18
+
+        for r in acct['debits']:
+            c.setFillColor(BODY); c.setFont('Helvetica', 8.8)
+            c.drawString(M + 1.0*inch, y, r['what'])
+            c.setFillColor(ACCENT); c.setFont('Helvetica-Bold', 8.8)
+            c.drawRightString(W - M - 0.05*inch, y, '\u2212' + pts(r['points']))
+            y -= 13
+        out_total = sum(r['points'] for r in acct['debits'])
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
+        c.drawString(M + 0.2*inch, y, 'spent on this trip')
+        c.drawRightString(W - M - 0.05*inch, y, pts(out_total))
+        y -= 16
+
+        bits = []
+        if amex_known: bits.append('%s Amex on the statements' % pts(amex_known))
+        if amex_unknown: bits.append('%s of it moved before the statement window, so its Amex cost is not evidenced' % pts(amex_unknown))
+        if cash: bits.append('%s in cash for the purchases' % money2(cash))
+        if acct.get('note'): bits.append(acct['note'])
+        for b in bits:
+            c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.2)
+            c.drawString(M + 0.2*inch, y, clip(c, b, W - 2*M - 0.3*inch, 'Helvetica-Oblique', 8.2))
+            y -= 12
+        y -= 0.2*inch
+
+
 def main():
     f = figures()
     path = os.path.join(OUT, 'hawaii27-costs.pdf')
@@ -524,6 +615,10 @@ def main():
 
     # ── what that was worth against the published market rate ──────────────
     market_page(c, f)
+    c.showPage()
+
+    # ── the Hilton accounts, which no single transfer explains ─────────────
+    hilton_page(c, f)
     c.showPage()
 
     # ── and finally: the redemptions ───────────────────────────────────────
