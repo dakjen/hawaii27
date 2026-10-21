@@ -412,6 +412,8 @@ def hilton_page(c, f):
         cash = 0
         for r in acct['credits']:
             tot[r['kind']] += r['points']
+            if r['kind'] == 'refund':
+                continue
             cash += r.get('cash', 0)
             if r['kind'] == 'amex':
                 if r.get('amex'): amex_known += r['amex']
@@ -433,18 +435,22 @@ def hilton_page(c, f):
         y -= 4
         c.setStrokeColor(colors.HexColor('#EEEEF1')); c.line(M + 0.2*inch, y + 6, W - M, y + 6)
         y -= 6
-        for k in ('buy', 'amex', 'refund'):
+        # Bought and transferred are points newly acquired. A refund is not —
+        # it is points already owned, spent on a booking and handed back when
+        # that booking cancelled, so it nets to zero against the earlier spend.
+        for k in ('buy', 'amex'):
             if not tot[k]: continue
             c.setFillColor(GREY); c.setFont('Helvetica', 8.6)
             c.drawString(M + 0.2*inch, y, KIND[k])
             c.setFillColor(BODY); c.setFont('Helvetica-Bold', 8.6)
             c.drawRightString(W - M - 0.05*inch, y, pts(tot[k]))
             y -= 13
-        total_in = sum(tot.values())
+        acquired = tot['buy'] + tot['amex']
         c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
-        c.drawString(M + 0.2*inch, y, 'in since 25 March')
-        c.drawRightString(W - M - 0.05*inch, y, pts(total_in))
-        y -= 18
+        c.drawString(M + 0.2*inch, y, 'acquired since 25 March')
+        c.drawRightString(W - M - 0.05*inch, y, pts(acquired))
+        y -= 16
+        y -= 4
 
         for r in acct['debits']:
             c.setFillColor(BODY); c.setFont('Helvetica', 8.8)
@@ -459,6 +465,13 @@ def hilton_page(c, f):
         y -= 16
 
         bits = []
+        if tot['refund']:
+            bits.append('Two cancellations handed %s points back to this account. Left out above \u2014 '
+                        'a refund is not a point coming in, it is a point being returned.'
+                        % pts(tot['refund']))
+            if out_total > acquired:
+                bits.append('%s of the %s spent here came off that returned balance.'
+                            % (pts(out_total - acquired), pts(out_total)))
         if amex_known: bits.append('%s Amex on the statements' % pts(amex_known))
         if amex_unknown: bits.append('%s of it moved before the statement window, so its Amex cost is not evidenced' % pts(amex_unknown))
         if cash: bits.append('%s in cash for the purchases' % money2(cash))
