@@ -9,11 +9,16 @@ own branding — not a transcription.
 import json, sys, html, re, os, subprocess
 
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+# Emails are built for a ~600px phone/desktop column. Printed at full page width
+# they come out magnified, so shrink the whole document and centre it.
+ZOOM = float(os.environ.get("MAIL_ZOOM", "0.72"))
 
 SHELL = """<!doctype html><html><head><meta charset="utf-8"><style>
 @page {{ size: letter; margin: 0.5in; }}
 body {{ margin:0; font-family:Arial,Helvetica,sans-serif;
-       -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+       -webkit-print-color-adjust:exact; print-color-adjust:exact;
+       zoom:{zoom}; }}
+.wrap {{ max-width:660px; margin:0 auto; }}
 .hdr {{ border-bottom:2px solid #333; padding:0 0 9px; margin:0 0 15px; }}
 .hdr .k {{ font:bold 8.5px Arial; color:#6C6C78; letter-spacing:.09em; text-transform:uppercase; }}
 .hdr .s {{ font:bold 15px Arial; color:#1a1a1a; margin:3px 0 6px; }}
@@ -21,12 +26,14 @@ body {{ margin:0; font-family:Arial,Helvetica,sans-serif;
 img {{ max-width:100%; height:auto; }}
 table {{ max-width:100%; }}
 </style></head><body>
+<div class="wrap">
 <div class="hdr">
   <div class="k">Confirmation email</div>
   <div class="s">{subject}</div>
   <div class="m"><b>From:</b> {sender}<br><b>Received:</b> {date}</div>
 </div>
 {body}
+</div>
 </body></html>"""
 
 
@@ -53,6 +60,7 @@ def main(src, out):
         sender=html.escape(d.get('sender', '')),
         date=d.get('date', ''),
         body=body,
+        zoom=ZOOM,
     )
     tmp = os.path.splitext(out)[0] + '.html'
     os.makedirs(os.path.dirname(out), exist_ok=True)
