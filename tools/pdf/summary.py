@@ -57,6 +57,47 @@ out.best = d.BOOKINGS
   .map(b => ({ title: b.title, who: b.guests, points: b.points, cpp: d.centsPerPoint(b) }))
   .sort((a, b) => b.cpp - a.cpp).slice(0, 5);
 out.counts = { bookings: d.BOOKINGS.length, items: d.ITINERARY.length };
+
+// Every currency that paid for something, with the bookings it paid for and
+// the account the points were transferred from.
+const LBL = { bd: 'Ben & Dakotah', gj: 'Gina & John', kelly: 'Kelly' };
+const AWARD = { freeNight35k: 'free night award', bonvoyFreeNight: 'Bonvoy free night' };
+const groups = {};
+for (const b of d.BOOKINGS) {
+  if (!b.points && !b.awards) continue;
+  const k = b.program || 'Other';
+  (groups[k] = groups[k] || []).push(b);
+}
+out.detail = Object.entries(groups).map(([program, rows]) => {
+  const src = {};
+  for (const b of rows) {
+    if (!b.transfer) continue;
+    const t = src[b.transfer.program] =
+      src[b.transfer.program] || { program: b.transfer.program, points: 0, dest: 0 };
+    t.points += d.sourcePoints(b);
+    t.dest += b.points || 0;
+  }
+  return {
+    program,
+    points: rows.reduce((a, b) => a + (b.points || 0), 0),
+    cash:   rows.reduce((a, b) => a + (b.cash || 0), 0),
+    value:  rows.reduce((a, b) => a + (b.cashValue || 0), 0),
+    kinds: [...new Set(rows.map(b => b.type))],
+    n: rows.length,
+    sources: Object.values(src),
+    rows: rows.map(b => ({
+      who: LBL[b.party] || b.party,
+      title: b.title,
+      points: b.points || 0,
+      value: b.cashValue || 0,
+      // A booking part-paid with a free night has no honest per-point rate.
+      cpp: (b.points > 10 && b.cashValue && !b.awards) ? d.centsPerPoint(b) : null,
+      award: b.awards
+        ? b.awards.map(a => (AWARD[a.type] || a.type) + (a.count > 1 ? ' ×' + a.count : '')).join(', ')
+        : null,
+    })).sort((a, b) => b.points - a.points),
+  };
+}).sort((a, b) => b.points - a.points);
 process.stdout.write(JSON.stringify(out));
 '''
     r = subprocess.run(['node', '-e', js, os.path.join(HERE, '..', '..', 'lib', 'data.js')],
@@ -76,6 +117,111 @@ def money2(n):
 
 def pts(n):
     return format(int(round(n)), ',d')
+
+
+
+def ratio_text(src, dest):
+    """How many points went in versus how many came out."""
+    if not src:
+        return ''
+    eff = dest / float(src)
+    if abs(eff - round(eff)) < 0.02:
+        return '1:%d' % round(eff)
+    return 'about 1:%.1f' % eff
+
+
+def clip(c, text, width, font, size):
+    """Trim a string until it fits the space it has."""
+    if c.stringWidth(text, font, size) <= width:
+        return text
+    while text and c.stringWidth(text + '\u2026', font, size) > width:
+        text = text[:-1]
+    return text.rstrip() + '\u2026'
+
+
+def programme_pages(c, f):
+    """Every currency, what it bought, and what it was worth. Paginates itself."""
+
+    def band(sub):
+        c.setFillColor(INK); c.rect(0, H - 1.2*inch, W, 1.2*inch, fill=1, stroke=0)
+        c.setFillColor(colors.white); c.setFont('Helvetica-Bold', 16)
+        c.drawString(M, H - 0.72*inch, 'EVERY POINT, PROGRAMME BY PROGRAMME')
+        c.setFillColor(ACCENT); c.setFont('Helvetica', 9)
+        c.drawString(M, H - 0.95*inch, sub)
+        return H - 1.62*inch
+
+    y = band('What each currency bought, and what it was worth')
+    c.setFillColor(BODY); c.setFont('Helvetica', 9.4)
+    c.drawString(M, y, '%d separate currencies paid for this trip. Each block below is one of them: the'
+                 % len(f['detail']))
+    y -= 13
+    c.drawString(M, y, 'points spent, what they bought, what those bookings would have cost in cash, and')
+    y -= 13
+    c.drawString(M, y, 'the rate that works out to. Ordered by points spent, largest first.')
+    y -= 0.3*inch
+
+    KIND = {'flight': 'flight', 'hotel': 'hotel booking', 'other': 'booking'}
+    X_WHO, X_TITLE = M + 0.22*inch, M + 1.62*inch
+    X_PTS, X_VAL, X_CPP = M + 4.62*inch, M + 5.68*inch, W - M - 0.06*inch
+
+    for g in f['detail']:
+        rows = g['rows']
+        need = (0.34*inch + 14 + len(rows)*13 + len(g['sources'])*13 + 14
+                + sum(11 for r in rows if r['award']))
+        if y - need < 0.85*inch:
+            c.showPage(); y = band('continued')
+
+        c.setFillColor(WASH); c.rect(M, y - 0.34*inch, W - 2*M, 0.34*inch, fill=1, stroke=0)
+        c.setFillColor(ACCENT); c.rect(M, y - 0.34*inch, 2.4, 0.34*inch, fill=1, stroke=0)
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 10.5)
+        c.drawString(M + 0.18*inch, y - 0.225*inch, g['program'])
+        c.drawRightString(W - M - 0.18*inch, y - 0.225*inch,
+                          (pts(g['points']) + ' points') if g['points'] > 10 else 'awards only')
+        y -= 0.34*inch + 14
+
+        kind = KIND.get(g['kinds'][0], 'booking') if len(g['kinds']) == 1 else 'booking'
+        bits = ['%d %s%s' % (g['n'], kind, '' if g['n'] == 1 else 's'),
+                money(g['value']) + ' of value']
+        if g['points'] > 10 and g['value']:
+            bits.append('%.2f\u00a2 per point overall' % (g['value'] * 100.0 / g['points']))
+        if g['cash'] > 0.5:
+            bits.append(money2(g['cash']) + ' paid in taxes and fees')
+        c.setFillColor(GREY); c.setFont('Helvetica', 8.3)
+        c.drawString(M + 0.2*inch, y, '   \u00b7   '.join(bits))
+        y -= 15
+
+        for r in rows:
+            c.setFillColor(GREY); c.setFont('Helvetica', 8.4)
+            c.drawString(X_WHO, y, r['who'])
+            c.setFillColor(BODY); c.setFont('Helvetica', 8.6)
+            c.drawString(X_TITLE, y, clip(c, r['title'], X_PTS - X_TITLE - 10, 'Helvetica', 8.6))
+            c.setFillColor(INK); c.setFont('Helvetica-Bold', 8.6)
+            c.drawRightString(X_PTS, y, pts(r['points']) if r['points'] > 10 else '\u2014')
+            c.setFillColor(BODY); c.setFont('Helvetica', 8.6)
+            c.drawRightString(X_VAL, y, money(r['value']))
+            if r['cpp']:
+                c.setFillColor(ACCENT); c.setFont('Helvetica-Bold', 8.6)
+                c.drawRightString(X_CPP, y, '%.2f\u00a2' % r['cpp'])
+            else:
+                c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.2)
+                c.drawRightString(X_CPP, y, 'free night')
+            y -= 13
+            if r['award']:
+                c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.0)
+                c.drawString(X_TITLE, y + 2, 'plus a ' + r['award'])
+                y -= 11
+
+        for src in g['sources']:
+            c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.2)
+            c.drawString(X_WHO, y, '%s %s points became %s here (%s)'
+                         % (pts(src['points']), src['program'], pts(src['dest']),
+                            ratio_text(src['points'], src['dest'])))
+            y -= 13
+        y -= 11
+
+    c.setFillColor(GREY); c.setFont('Helvetica', 7.6)
+    c.drawString(M, 0.6*inch,
+                 'A booking part-paid with a free-night award has no honest per-point rate, so none is shown.')
 
 
 def main():
@@ -199,7 +345,11 @@ def main():
                  'Free-night awards are counted as awards, not points, so they do not inflate the points total.')
     c.showPage()
 
-    # ── page two: the redemptions ───────────────────────────────────────────
+    # ── the programme-by-programme detail (paginates itself) ────────────────
+    programme_pages(c, f)
+    c.showPage()
+
+    # ── and finally: the redemptions ───────────────────────────────────────
     c.setFillColor(INK); c.rect(0, H - 1.2*inch, W, 1.2*inch, fill=1, stroke=0)
     c.setFillColor(colors.white); c.setFont('Helvetica-Bold', 17)
     c.drawString(M, H - 0.78*inch, 'HOW HARD THE POINTS WORKED')
