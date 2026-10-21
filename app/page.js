@@ -14,6 +14,7 @@ import {
   sourcePoints, centsPerSourcePoint,
   SHARED_BUDGET, sharedFor, shareOf, lineTotal,
   TRIP_DAYS, TOGETHER_DAYS, DAY_GRID, staySegments,
+  PLAN, planFor,
 } from '../lib/data';
 
 const LUCIDE = {
@@ -1106,6 +1107,46 @@ function MessagesTab({ me }) {
 }
 
 
+
+// ── The loose plan ────────────────────────────────────────────────────────────
+// Sits under the timeline. Shows only days the viewer is part of.
+function PlanList({ party }) {
+  const days = party ? planFor(party) : PLAN;
+  if (!days.length) return null;
+  return (
+    <div className="plan-wrap">
+      <TitleIcon name="Compass">The plan</TitleIcon>
+      <div className="plan-intro">
+        Loose on purpose. Nothing here is compulsory — peel off whenever you like.
+      </div>
+      {days.map(day => (
+        <div className="plan-day" key={day.date}>
+          <div className="plan-day-head">
+            <div className="plan-date">{formatDate(day.date)}</div>
+            <div className="plan-title">{day.title}</div>
+          </div>
+          {day.note && <div className="plan-note">{day.note}</div>}
+          {day.entries.map((e, i) => (
+            <div className={`plan-entry ${e.open ? 'is-open' : ''}`} key={i}>
+              <div className="plan-when">{e.when}</div>
+              <div className="plan-what">
+                <div className="plan-entry-title">
+                  {e.title}
+                  {e.open && <span className="plan-chip open">Optional</span>}
+                  {e.book && <span className="plan-chip book">Needs booking</span>}
+                </div>
+                {e.where && <div className="plan-where"><Icon name="MapPin" size={11} /> {e.where}</div>}
+                {e.detail && <div className="plan-detail">{e.detail}</div>}
+                {e.book && <div className="plan-book">{e.book}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ItineraryTab({ party = null, isAdmin = false }) {
   // Organisers and admin can flip between parties. Everyone else gets the
   // whole-group graphic but only their own list underneath.
@@ -1137,6 +1178,7 @@ function ItineraryTab({ party = null, isAdmin = false }) {
       <div className="itinerary-list">
         {items.map(item => <ItinCard key={item.id} item={item}/>)}
       </div>
+      <PlanList party={listParty === 'all' ? null : listParty} />
     </>
   );
 }

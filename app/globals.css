@@ -2076,3 +2076,88 @@ html, body {
   color: rgba(var(--accent-rgb), 1);
   margin-bottom: 0.25rem;
 }
+
+/* ── The loose plan ──────────────────────────────────────────────────────── */
+.plan-wrap { margin-top: 1.6rem; }
+.plan-intro {
+  font-size: 0.82rem;
+  color: var(--muted, #6C6C78);
+  margin: -0.35rem 0 0.9rem;
+  padding: 0 0.1rem;
+}
+.plan-day {
+  background: var(--card-bg, #fff);
+  border-radius: 14px;
+  padding: 0.9rem 1rem 0.5rem;
+  margin-bottom: 0.8rem;
+  border-left: 3px solid rgba(var(--accent-rgb), 0.85);
+}
+.plan-day-head { margin-bottom: 0.3rem; }
+.plan-date {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb), 1);
+}
+.plan-title { font-size: 1.02rem; font-weight: 700; color: var(--ink, #1a1a1a); }
+.plan-note {
+  font-size: 0.8rem;
+  color: var(--muted, #6C6C78);
+  line-height: 1.45;
+  margin: 0.35rem 0 0.7rem;
+}
+.plan-entry {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--hairline, #EEEEF2);
+}
+.plan-when {
+  flex: 0 0 4.6rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink, #1a1a1a);
+  padding-top: 0.08rem;
+}
+.plan-entry.is-open .plan-when { font-weight: 600; color: var(--muted, #6C6C78); }
+.plan-what { flex: 1; min-width: 0; }
+.plan-entry-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink, #1a1a1a);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.plan-chip {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 0.14rem 0.38rem;
+  border-radius: 999px;
+}
+.plan-chip.open { background: rgba(var(--accent-rgb), 0.14); color: rgba(var(--accent-rgb), 1); }
+.plan-chip.book { background: rgba(179, 38, 30, 0.12); color: #B3261E; }
+.plan-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  font-size: 0.74rem;
+  color: var(--muted, #6C6C78);
+  margin-top: 0.15rem;
+}
+.plan-detail {
+  font-size: 0.8rem;
+  color: var(--body, #33333D);
+  line-height: 1.5;
+  margin-top: 0.22rem;
+}
+.plan-book {
+  font-size: 0.75rem;
+  color: #B3261E;
+  line-height: 1.45;
+  margin-top: 0.3rem;
+}
