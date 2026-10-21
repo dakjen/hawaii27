@@ -2027,3 +2027,52 @@ html, body {
 }
 
 .itin-icon.note { background: var(--tan-dim); border: 1px solid rgba(var(--accent-rgb), 0.3); }
+
+/* ── Activity requests in the message thread ─────────────────────────────── */
+.msg-modes {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+.msg-mode {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.4rem;
+  border: 1px solid var(--hairline, #DDDDE2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted, #6C6C78);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.msg-mode.on {
+  background: rgba(var(--accent-rgb), 0.14);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  color: var(--ink, #1a1a1a);
+}
+.msg-prompt {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink, #1a1a1a);
+  margin: 0 0 0.4rem 0.1rem;
+}
+.msg.is-request {
+  border-left: 3px solid rgba(var(--accent-rgb), 0.85);
+  background: rgba(var(--accent-rgb), 0.08);
+}
+.msg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb), 1);
+  margin-bottom: 0.25rem;
+}

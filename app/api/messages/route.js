@@ -24,7 +24,7 @@ export async function GET(req) {
     // The thread only shows the last week. Older rows stay in the table but
     // drop off the page.
     const messages = await sql`
-      SELECT id, author, body, created_at
+      SELECT id, author, body, created_at, COALESCE(kind, 'message') AS kind
       FROM messages
       WHERE created_at > NOW() - INTERVAL '7 days'
       ORDER BY created_at ASC
@@ -45,7 +45,8 @@ export async function POST(req) {
   if (!author) return Response.json({ error: 'No author' }, { status: 400 });
 
   try {
-    const { body } = await req.json();
+    const { body, kind: rawKind } = await req.json();
+    const kind = rawKind === 'request' ? 'request' : 'message';
     if (typeof body !== 'string' || !body.trim()) {
       return Response.json({ error: 'Empty message' }, { status: 400 });
     }
@@ -55,14 +56,15 @@ export async function POST(req) {
     await initDb();
     const sql = getDb();
     const [message] = await sql`
-      INSERT INTO messages (author, body)
-      VALUES (${author}, ${body.trim()})
-      RETURNING id, author, body, created_at
+      INSERT INTO messages (author, body, kind)
+      VALUES (${author}, ${body.trim()}, ${kind})
+      RETURNING id, author, body, created_at, kind
     `;
     // Notify everyone but the author. Never fail the post over a push error.
     try {
+      const who = AUTHOR_LABELS[author] || author;
       await sendPushToAll({
-        title: `New message from ${AUTHOR_LABELS[author] || author}`,
+        title: kind === 'request' ? `${who} wants to do something` : `New message from ${who}`,
         body: message.body.length > 120 ? message.body.slice(0, 117) + '…' : message.body,
       }, author);
     } catch (_) {}

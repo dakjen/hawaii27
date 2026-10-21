@@ -5,6 +5,7 @@ import {
   UtensilsCrossed, Bell, BellOff, Check, CheckCircle2, TriangleAlert, Sparkles,
   Heart, Users, Plus, Trash2, Clock, Smartphone, Waves, TreePalm, Mountain,
   Leaf, Sunset, Bus, ShoppingBasket, Car, Fish, Star, Coffee, Umbrella, Compass,
+  MessageCircle,
 } from 'lucide-react';
 import {
   ITINERARY, DESTINATIONS, AFFIRMATIONS,
@@ -20,6 +21,7 @@ const LUCIDE = {
   UtensilsCrossed, Bell, BellOff, Check, CheckCircle2, TriangleAlert, Sparkles,
   Heart, Users, Plus, Trash2, Clock, Smartphone, Waves, TreePalm, Mountain,
   Leaf, Sunset, Bus, ShoppingBasket, Car, Fish, Star, Coffee, Umbrella, Compass,
+  MessageCircle,
 };
 
 // Icons come from Lucide by name — no emoji anywhere in the UI.
@@ -985,6 +987,7 @@ function MessagesTab({ me }) {
   const [messages, setMessages] = useState(() => messagesCache || []);
   const [loading, setLoading] = useState(() => messagesCache === null);
   const [draft, setDraft] = useState('');
+  const [mode, setMode] = useState('message');   // 'message' | 'request'
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
 
@@ -1012,7 +1015,7 @@ function MessagesTab({ me }) {
       const res = await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, kind: mode }),
       });
       if (res.ok) {
         const { message } = await res.json();
@@ -1049,7 +1052,10 @@ function MessagesTab({ me }) {
               {dayMsgs.map(m => (
                 <div key={m.id} className={`msg-row ${m.author === me ? 'mine' : ''}`}>
                   <Avatar author={m.author} title={m.author === me ? 'You' : undefined} />
-                  <div className="msg">
+                  <div className={`msg ${m.kind === 'request' ? 'is-request' : ''}`}>
+                    {m.kind === 'request' && (
+                      <div className="msg-tag"><Icon name="Sparkles" size={11} /> Wants to do</div>
+                    )}
                     <div className="msg-body">{m.body}</div>
                     <div className="msg-time">
                       {new Date(m.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
@@ -1063,15 +1069,36 @@ function MessagesTab({ me }) {
       )}
 
       <div className="msg-compose">
+        <div className="msg-modes">
+          <button
+            className={`msg-mode ${mode === 'message' ? 'on' : ''}`}
+            onClick={() => setMode('message')}
+          >
+            <Icon name="MessageCircle" size={13} /> Message
+          </button>
+          <button
+            className={`msg-mode ${mode === 'request' ? 'on' : ''}`}
+            onClick={() => setMode('request')}
+          >
+            <Icon name="Sparkles" size={13} /> Request an activity
+          </button>
+        </div>
+        {mode === 'request' && (
+          <div className="msg-prompt">What do you want to do?</div>
+        )}
         <textarea
           className="sender-input sender-textarea"
-          placeholder="Message everyone…"
+          placeholder={mode === 'request'
+            ? 'Snorkelling at Molokini, the luau, a sunset sail…'
+            : 'Message everyone…'}
           value={draft}
           onChange={e => setDraft(e.target.value)}
         />
         {error && <div className="pin-error" style={{ marginTop: 0 }}>{error}</div>}
         <button className="sender-submit" onClick={send} disabled={sending || !draft.trim()}>
-          <Icon name="Send" size={14} /> {sending ? 'Sending…' : 'Send to everyone'}
+          <Icon name={mode === 'request' ? 'Sparkles' : 'Send'} size={14} />{' '}
+          {sending ? 'Sending…'
+            : mode === 'request' ? 'Put it forward' : 'Send to everyone'}
         </button>
       </div>
     </>
