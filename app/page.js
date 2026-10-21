@@ -371,7 +371,7 @@ function ItinCard({ item }) {
   return (
     <div className={`itin-card ${open?'active':''} ${isPast?'past':''} ${isActive?'current':''} ${isNrt?'nrt':''}`} onClick={()=>setOpen(o=>!o)}>
       <div className="itin-card-top">
-        <div className={`itin-icon ${item.type}`}><Icon name={item.type==='flight'?'Plane':item.type==='dinner'?'UtensilsCrossed':item.type==='note'?'Users':'Hotel'} size={18} /></div>
+        <div className={`itin-icon ${item.type}`}><Icon name={item.type==='flight'?'Plane':item.type==='car'?'Car':item.type==='dinner'?'UtensilsCrossed':item.type==='note'?'Users':'Hotel'} size={18} /></div>
         <div className="itin-info">
           <div className="itin-title">{item.title}</div>
           <div className="itin-sub">{item.subtitle}</div>
@@ -389,7 +389,7 @@ function ItinCard({ item }) {
           <div className="itin-detail-text">{item.detail}</div>
           {item.conf && <div className="itin-conf">Conf: <span>{item.conf}</span></div>}
           {item.tip && <div className="itin-tip"><Icon name="Lightbulb" size={13} /> {item.tip}</div>}
-          {item.link && <button className="itin-link" onClick={handleLink}><Icon name={item.type==='flight'?'Plane':item.type==='dinner'?'UtensilsCrossed':'Hotel'} size={14} /> {item.link.label}</button>}
+          {item.link && <button className="itin-link" onClick={handleLink}><Icon name={item.type==='flight'?'Plane':item.type==='car'?'Car':item.type==='dinner'?'UtensilsCrossed':'Hotel'} size={14} /> {item.link.label}</button>}
         </div>
       )}
     </div>
