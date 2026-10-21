@@ -85,6 +85,11 @@ REMEMBER = {
          "Not Dakotah's. At the desk, give GINA MERRITT and confirmation 5UFHBS97EZ, or it will not "
          "come up. It is comped on her MGM offer and carries $150 of FREEPLAY and a $150 resort credit."),
 
+        ("The Los Angeles night is very short",
+         "American has moved your LGA–LAX flight twice. You now land at 10pm on the 14th and "
+         "AA 271 leaves LAX at 8:52am on the 15th. Tell citizenM you are checking in late, keep "
+         "what you need for the night in your carry-on, and do not plan anything for that evening."),
+
         ("Both Maui flights are Etihad tickets flown by American",
          "AA 271 out and AA 254 back were ticketed through Etihad Guest, so they live at etihad.com, "
          "not aa.com. References 7RIAL6 and 7RO9GD, and the surname on both bookings is Polyakov. "
