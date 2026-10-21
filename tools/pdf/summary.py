@@ -305,23 +305,41 @@ def main():
             money2(cat['cash']), pts(cat['points']), money(cat['value']))
     y -= 0.22*inch
 
-    # ── programs ────────────────────────────────────────────────────────────
-    section('Points by programme')
-    half = (len(f['programs']) + 1) // 2
-    left, right = f['programs'][:half], f['programs'][half:]
+    # ── programs, with the rate each one returned ───────────────────────────
+    section('Points by programme, and what each was worth')
+    det = f['detail']
+    half = (len(det) + 1) // 2
     ytop = y
-    for col, rows in ((0, left), (1, right)):
+    for col, rows in ((0, det[:half]), (1, det[half:])):
         yy = ytop
         x = M + col * 3.45*inch
+        c.setFillColor(GREY); c.setFont('Helvetica-Bold', 7)
+        c.drawRightString(x + 2.5*inch, yy, 'POINTS')
+        c.drawRightString(x + 3.2*inch, yy, 'RATE')
+        yy -= 14
         for r in rows:
-            c.setFillColor(BODY); c.setFont('Helvetica', 9.4)
-            c.drawString(x + 0.05*inch, yy, str(r['program']))
-            c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.4)
-            c.drawRightString(x + 3.1*inch, yy, pts(r['points']))
+            c.setFillColor(BODY); c.setFont('Helvetica', 9.2)
+            c.drawString(x + 0.05*inch, yy, clip(c, r['program'], 1.75*inch, 'Helvetica', 9.2))
+            c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
+            c.drawRightString(x + 2.5*inch, yy, pts(r['points']))
+            c.setFillColor(ACCENT); c.setFont('Helvetica-Bold', 9.2)
+            rate = (r['value'] * 100.0 / r['points']) if r['points'] > 10 else 0
+            c.drawRightString(x + 3.2*inch, yy, ('%.2f\u00a2' % rate) if rate else '\u2014')
             yy -= 15
         if col == 1:
             y = min(y, yy)
-    y -= 0.2*inch
+    y -= 6
+    c.setStrokeColor(colors.HexColor('#DDDDE2')); c.setLineWidth(0.6)
+    c.line(M, y + 6, W - M, y + 6)
+    y -= 8
+    avg = f['trip']['cashValue'] * 100.0 / f['trip']['points']
+    c.setFillColor(BODY); c.setFont('Helvetica', 9.2)
+    c.drawString(M + 0.05*inch, y, 'Across everything, every point redeemed returned')
+    c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
+    c.drawString(M + 2.95*inch, y, '%.2f\u00a2' % avg)
+    c.setFillColor(GREY); c.setFont('Helvetica', 8.4)
+    c.drawString(M + 3.45*inch, y, '(the two free-night awards lift this slightly)')
+    y -= 0.42*inch
 
     # ── transfers ───────────────────────────────────────────────────────────
     if f['sources']:
