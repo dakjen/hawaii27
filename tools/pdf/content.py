@@ -149,7 +149,9 @@ REMEMBER = {
         ("Three of your hotels are on Dakotah's accounts",
          "The DoubleTree, the Hyatt and the Waldorf were all booked on her Hilton and Hyatt accounts, "
          "so they will not appear in your own apps. Use the confirmation numbers in this pack instead. "
-         "The Maui Coast and both Alaska flights are under your own name."),
+         "You are on the DoubleTree reservation as an additional guest, and Ben and Dakotah will be there "
+         "to check you in at the Hyatt and the Waldorf. The Maui Coast and both Alaska flights are under "
+         "your own name."),
 
         ("The 23rd into the 24th is a short night",
          "You land at LAX at 11:59pm and fly out again at 7:30am. Keep whatever you need for that night "
