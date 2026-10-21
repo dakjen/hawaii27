@@ -61,6 +61,26 @@ out.best = d.BOOKINGS
 out.counts = { bookings: d.BOOKINGS.length, items: d.ITINERARY.length };
 out.hilton = d.HILTON_LEDGER;
 
+// Amex transfers to Hilton run 1:2 as standard. Every bonus above that is
+// free Hilton points, so it is worth scoring the transfers on their own.
+const STD = 2;
+const tr = [];
+for (const a of d.HILTON_LEDGER.accounts)
+  for (const c of a.credits)
+    if (c.kind === 'amex' && c.amex)
+      tr.push({ who: a.who, date: c.date, amex: c.amex, hilton: c.points,
+                ratio: c.points / c.amex, extra: c.points - c.amex * STD });
+tr.sort((x, y) => y.amex - x.amex);
+const tAmex = tr.reduce((a, r) => a + r.amex, 0);
+const tHil  = tr.reduce((a, r) => a + r.hilton, 0);
+const hil   = d.BOOKINGS.filter(b => b.program === 'Hilton Honors');
+const hCpp  = hil.reduce((a, b) => a + b.cashValue, 0) * 100 / hil.reduce((a, b) => a + b.points, 0);
+out.transferBonus = {
+  rows: tr, std: STD, amex: tAmex, hilton: tHil,
+  atStandard: tAmex * STD, extra: tHil - tAmex * STD,
+  blended: tHil / tAmex, hiltonCpp: hCpp,
+};
+
 // Every currency that paid for something, with the bookings it paid for and
 // the account the points were transferred from.
 const LBL = { bd: 'Ben & Dakotah', gj: 'Gina & John', kelly: 'Kelly' };
@@ -483,6 +503,99 @@ def hilton_page(c, f):
         y -= 0.2*inch
 
 
+
+def bonus_page(c, f):
+    """Amex to Hilton is 1:2 as standard. None of these ran at 1:2."""
+    T = f['transferBonus']
+    c.setFillColor(INK); c.rect(0, H - 1.2*inch, W, 1.2*inch, fill=1, stroke=0)
+    c.setFillColor(colors.white); c.setFont('Helvetica-Bold', 16)
+    c.drawString(M, H - 0.72*inch, 'THE TRANSFER BONUSES')
+    c.setFillColor(ACCENT); c.setFont('Helvetica', 9)
+    c.drawString(M, H - 0.95*inch, 'Amex moves to Hilton at 1:2 as standard. You averaged 1:%.2f' % T['blended'])
+    y = H - 1.62*inch
+
+    c.setFillColor(BODY); c.setFont('Helvetica', 9.4)
+    for ln in ['Six of these eight transfers caught a promotion. The bonus points cost nothing',
+               'and came out of the same Amex balance, so they are the clearest win in the trip.']:
+        c.drawString(M, y, ln); y -= 13
+    y -= 0.28*inch
+
+    X_AMEX, X_HIL, X_RATIO, X_BONUS, X_EXTRA = (M + 2.3*inch, M + 3.5*inch, M + 4.4*inch,
+                                                M + 5.2*inch, W - M - 0.05*inch)
+    c.setFillColor(GREY); c.setFont('Helvetica-Bold', 7)
+    c.drawRightString(X_AMEX, y, 'AMEX OUT')
+    c.drawRightString(X_HIL, y, 'LANDED')
+    c.drawRightString(X_RATIO, y, 'RATIO')
+    c.drawRightString(X_BONUS, y, 'BONUS')
+    c.drawRightString(X_EXTRA, y, 'FREE POINTS')
+    y -= 15
+
+    for r in T['rows']:
+        c.setFillColor(GREY); c.setFont('Helvetica', 8.6)
+        c.drawString(M + 0.05*inch, y, r['who'])
+        c.setFillColor(BODY); c.setFont('Helvetica', 8.8)
+        c.drawString(M + 1.0*inch, y, r['date'])
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 8.8)
+        c.drawRightString(X_AMEX, y, pts(r['amex']))
+        c.setFillColor(BODY); c.setFont('Helvetica', 8.8)
+        c.drawRightString(X_HIL, y, pts(r['hilton']))
+        bonus = r['ratio'] / T['std'] - 1
+        c.setFillColor(ACCENT if bonus > 0 else GREY)
+        c.setFont('Helvetica-Bold' if bonus > 0 else 'Helvetica', 8.8)
+        c.drawRightString(X_RATIO, y, '1:%.1f' % r['ratio'])
+        c.drawRightString(X_BONUS, y, ('%d%%' % round(bonus * 100)) if bonus > 0 else '\u2014')
+        c.drawRightString(X_EXTRA, y, ('+' + pts(r['extra'])) if r['extra'] else '\u2014')
+        y -= 14
+
+    y -= 4
+    c.setStrokeColor(colors.HexColor('#DDDDE2')); c.setLineWidth(0.6)
+    c.line(M, y + 6, W - M, y + 6)
+    y -= 8
+    c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
+    c.drawString(M + 0.05*inch, y, 'Across all eight')
+    c.drawRightString(X_AMEX, y, pts(T['amex']))
+    c.drawRightString(X_HIL, y, pts(T['hilton']))
+    c.setFillColor(ACCENT)
+    c.drawRightString(X_RATIO, y, '1:%.2f' % T['blended'])
+    c.drawRightString(X_EXTRA, y, '+' + pts(T['extra']))
+    y -= 0.44*inch
+
+    free = T['extra'] * T['hiltonCpp'] / 100.0
+    for x, label, val in ((M, 'AT THE STANDARD 1:2', pts(T['atStandard']) + ' Hilton'),
+                          (M + 2.4*inch, 'WHAT YOU ACTUALLY GOT', pts(T['hilton']) + ' Hilton'),
+                          (M + 4.8*inch, 'THE DIFFERENCE, FREE', money(free))):
+        c.setFillColor(WASH); c.rect(x, y - 0.74*inch, 2.25*inch, 0.74*inch, fill=1, stroke=0)
+        c.setFillColor(ACCENT); c.rect(x, y - 0.74*inch, 2.4, 0.74*inch, fill=1, stroke=0)
+        c.setFillColor(GREY); c.setFont('Helvetica-Bold', 7)
+        c.drawString(x + 0.18*inch, y - 0.26*inch, label)
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 13)
+        c.drawString(x + 0.18*inch, y - 0.55*inch, val)
+    y -= 1.0*inch
+
+    cpp = T['hiltonCpp']
+    c.setFillColor(INK); c.setFont('Helvetica-Bold', 11.5)
+    c.drawString(M, y, 'What that did to the Amex rate')
+    c.setStrokeColor(colors.HexColor('#DDDDE2')); c.line(M, y - 6, W - M, y - 6)
+    y -= 24
+    for label, ratio in (('If every transfer had run at the standard 1:2', T['std']),
+                         ('At the 1:%.2f you actually averaged' % T['blended'], T['blended'])):
+        c.setFillColor(BODY); c.setFont('Helvetica', 9.4)
+        c.drawString(M + 0.05*inch, y, label)
+        c.setFillColor(INK if ratio > T['std'] else GREY)
+        c.setFont('Helvetica-Bold', 9.4)
+        c.drawRightString(W - M - 0.05*inch, y, '%.2f \u00d7 %.2f\u00a2  =  %.2f\u00a2 per Amex point'
+                          % (ratio, cpp, ratio * cpp))
+        y -= 16
+    y -= 4
+    c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.4)
+    c.drawString(M + 0.05*inch, y,
+                 'The bonuses alone lifted the Amex rate %d%%. Hilton still caps it below the 2.00\u00a2 benchmark,'
+                 % round((T['blended'] / T['std'] - 1) * 100))
+    y -= 12
+    c.drawString(M + 0.05*inch, y,
+                 'but that is the currency, not the transfers \u2014 the transfers were as good as they get.')
+
+
 def main():
     f = figures()
     path = os.path.join(OUT, 'hawaii27-costs.pdf')
@@ -632,6 +745,10 @@ def main():
 
     # ── the Hilton accounts, which no single transfer explains ─────────────
     hilton_page(c, f)
+    c.showPage()
+
+    # ── and what the bonuses on those transfers were worth ─────────────────
+    bonus_page(c, f)
     c.showPage()
 
     # ── and finally: the redemptions ───────────────────────────────────────
