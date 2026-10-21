@@ -111,6 +111,7 @@ out.compare = out.detail.map(g => ({
   value: g.value,
   ours: g.points > 10 ? g.value * 100 / g.points : null,
   market: BM[g.program] || null,
+  fedPoints: 0,
   fed: false,
 }));
 // Transfer currencies: the honest rate is per point we actually gave up.
@@ -124,9 +125,24 @@ for (const b of d.BOOKINGS) {
     t.value += r.value;
     t.into[b.program] = (t.into[b.program] || 0) + r.destPoints;
     const row = out.compare.find(x => x.program === b.program);
-    if (row) row.fed = true;
+    if (row) row.fedPoints = (row.fedPoints || 0) + r.destPoints;
   }
 }
+// Pooled account top-ups, apportioned across that programme's redemptions.
+for (const at of d.ACCOUNT_TRANSFERS) {
+  const g = out.detail.find(x => x.program === at.into);
+  if (!g || !g.points) continue;
+  const dest = Math.round(at.points * (at.ratio ?? 1));
+  const t = srcAgg[at.program] =
+    srcAgg[at.program] || { program: at.program, out: 0, value: 0, into: {} };
+  t.out += at.points;
+  t.value += g.value * dest / g.points;
+  t.into[at.into] = (t.into[at.into] || 0) + dest;
+  const row = out.compare.find(x => x.program === at.into);
+  if (row) row.fedPoints = (row.fedPoints || 0) + dest;
+}
+// A row only earns the dagger when bank points paid for most of it.
+for (const r of out.compare) r.fed = r.points > 10 && (r.fedPoints || 0) / r.points >= 0.5;
 out.transfers = Object.values(srcAgg).map(t => ({
   program: t.program,
   out: t.out,
