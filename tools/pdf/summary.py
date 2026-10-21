@@ -38,9 +38,11 @@ out.trip = d.totals(d.BOOKINGS);
 out.programs = d.pointsByProgram(d.BOOKINGS)
   .filter(r => r.points > 10)
   .sort((a, b) => b.points - a.points);
-for (const b of d.BOOKINGS.filter(x => x.transfer)) {
-  const p = b.transfer.program;
-  out.sources[p] = (out.sources[p] || 0) + d.sourcePoints(b);
+for (const b of d.BOOKINGS) {
+  for (const r of d.sourceBreakdown(b)) {
+    if (r.earned) continue;
+    out.sources[r.program] = (out.sources[r.program] || 0) + r.sourcePoints;
+  }
 }
 for (const ty of ['flight','hotel','other']) {
   const rows = d.BOOKINGS.filter(b => b.type === ty);
@@ -71,11 +73,12 @@ for (const b of d.BOOKINGS) {
 out.detail = Object.entries(groups).map(([program, rows]) => {
   const src = {};
   for (const b of rows) {
-    if (!b.transfer) continue;
-    const t = src[b.transfer.program] =
-      src[b.transfer.program] || { program: b.transfer.program, points: 0, dest: 0 };
-    t.points += d.sourcePoints(b);
-    t.dest += b.points || 0;
+    for (const r of d.sourceBreakdown(b)) {
+      if (r.earned) continue;
+      const t = src[r.program] = src[r.program] || { program: r.program, points: 0, dest: 0 };
+      t.points += r.sourcePoints;
+      t.dest += r.destPoints;
+    }
   }
   return {
     program,
@@ -98,6 +101,41 @@ out.detail = Object.entries(groups).map(([program, rows]) => {
     })).sort((a, b) => b.points - a.points),
   };
 }).sort((a, b) => b.points - a.points);
+
+// What the market reckons each currency is worth, against what we got.
+const BM = d.BENCHMARK.cents;
+out.benchmark = { source: d.BENCHMARK.source, asOf: d.BENCHMARK.asOf };
+out.compare = out.detail.map(g => ({
+  program: g.program,
+  points: g.points,
+  value: g.value,
+  ours: g.points > 10 ? g.value * 100 / g.points : null,
+  market: BM[g.program] || null,
+  fed: false,
+}));
+// Transfer currencies: the honest rate is per point we actually gave up.
+const srcAgg = {};
+for (const b of d.BOOKINGS) {
+  for (const r of d.sourceBreakdown(b)) {
+    if (r.earned) continue;
+    const t = srcAgg[r.program] =
+      srcAgg[r.program] || { program: r.program, out: 0, value: 0, into: {} };
+    t.out += r.sourcePoints;
+    t.value += r.value;
+    t.into[b.program] = (t.into[b.program] || 0) + r.destPoints;
+    const row = out.compare.find(x => x.program === b.program);
+    if (row) row.fed = true;
+  }
+}
+out.transfers = Object.values(srcAgg).map(t => ({
+  program: t.program,
+  out: t.out,
+  value: t.value,
+  ours: t.value * 100 / t.out,
+  market: BM[t.program] || null,
+  into: Object.entries(t.into).map(([pr, n]) => ({ program: pr, points: n }))
+                              .sort((a, b) => b.points - a.points),
+})).sort((a, b) => b.out - a.out);
 process.stdout.write(JSON.stringify(out));
 '''
     r = subprocess.run(['node', '-e', js, os.path.join(HERE, '..', '..', 'lib', 'data.js')],
@@ -222,6 +260,107 @@ def programme_pages(c, f):
     c.setFillColor(GREY); c.setFont('Helvetica', 7.6)
     c.drawString(M, 0.6*inch,
                  'A booking part-paid with a free-night award has no honest per-point rate, so none is shown.')
+
+
+
+def market_page(c, f):
+    """Our rate against the published market rate, including the bank points."""
+    c.setFillColor(INK); c.rect(0, H - 1.2*inch, W, 1.2*inch, fill=1, stroke=0)
+    c.setFillColor(colors.white); c.setFont('Helvetica-Bold', 16)
+    c.drawString(M, H - 0.72*inch, 'YOUR RATE AGAINST THE MARKET')
+    c.setFillColor(ACCENT); c.setFont('Helvetica', 9)
+    c.drawString(M, H - 0.95*inch, 'Benchmarked against %s' % f['benchmark']['source'])
+    y = H - 1.62*inch
+
+    c.setFillColor(BODY); c.setFont('Helvetica', 9.4)
+    for ln in [
+        'A point is only worth what you get out of it. The benchmark column is what the',
+        'market reckons each currency is typically worth; the column beside it is what this',
+        'trip actually extracted. Where you transferred bank points in, the real rate is the',
+        'one per point you gave up \u2014 that is the first section.',
+    ]:
+        c.drawString(M, y, ln); y -= 13
+    y -= 0.26*inch
+
+    # ── the bank points ────────────────────────────────────────────────────
+    c.setFillColor(INK); c.setFont('Helvetica-Bold', 11.5)
+    c.drawString(M, y, 'The bank points you actually spent')
+    c.setStrokeColor(colors.HexColor('#DDDDE2')); c.setLineWidth(0.6)
+    c.line(M, y - 6, W - M, y - 6)
+    y -= 24
+
+    for t in f['transfers']:
+        block = 0.82*inch
+        c.setFillColor(WASH); c.rect(M, y - block, W - 2*M, block, fill=1, stroke=0)
+        c.setFillColor(ACCENT); c.rect(M, y - block, 2.4, block, fill=1, stroke=0)
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 11)
+        c.drawString(M + 0.22*inch, y - 0.22*inch, t['program'])
+        c.setFont('Helvetica-Bold', 11)
+        c.drawRightString(W - M - 0.22*inch, y - 0.22*inch, pts(t['out']) + ' points out')
+        c.setFillColor(GREY); c.setFont('Helvetica', 8.4)
+        became = ', '.join('%s %s' % (pts(i['points']), i['program']) for i in t['into'])
+        c.drawString(M + 0.22*inch, y - 0.4*inch,
+                     clip(c, 'Became ' + became, W - 2*M - 0.5*inch, 'Helvetica', 8.4))
+        c.drawString(M + 0.22*inch, y - 0.55*inch, 'which bought ' + money2(t['value']) + ' of travel')
+
+        c.setFillColor(GREY); c.setFont('Helvetica-Bold', 7)
+        c.drawString(M + 0.22*inch, y - 0.725*inch, 'YOUR RATE')
+        c.drawString(M + 1.95*inch, y - 0.725*inch, 'MARKET')
+        c.setFillColor(ACCENT if t['ours'] >= t['market'] else GREY)
+        c.setFont('Helvetica-Bold', 11)
+        c.drawString(M + 1.0*inch, y - 0.72*inch, '%.2f\u00a2' % t['ours'])
+        c.setFillColor(BODY); c.setFont('Helvetica', 11)
+        c.drawString(M + 2.7*inch, y - 0.72*inch, '%.2f\u00a2' % t['market'])
+        mult = t['ours'] / t['market']
+        c.setFillColor(ACCENT if mult >= 1 else GREY)
+        c.setFont('Helvetica-Bold', 9.4)
+        c.drawRightString(W - M - 0.22*inch, y - 0.72*inch,
+                          '%.2f\u00d7 the benchmark' % mult)
+        y -= block + 10
+    y -= 0.14*inch
+
+    # ── every programme ────────────────────────────────────────────────────
+    c.setFillColor(INK); c.setFont('Helvetica-Bold', 11.5)
+    c.drawString(M, y, 'Every programme, your rate against the benchmark')
+    c.setStrokeColor(colors.HexColor('#DDDDE2')); c.setLineWidth(0.6)
+    c.line(M, y - 6, W - M, y - 6)
+    y -= 22
+
+    X_PTS, X_OURS, X_MKT, X_MULT = M + 3.0*inch, M + 4.1*inch, M + 5.1*inch, W - M - 0.05*inch
+    c.setFillColor(GREY); c.setFont('Helvetica-Bold', 7)
+    c.drawRightString(X_PTS, y, 'POINTS')
+    c.drawRightString(X_OURS, y, 'YOU GOT')
+    c.drawRightString(X_MKT, y, 'MARKET')
+    c.drawRightString(X_MULT, y, 'VS BENCHMARK')
+    y -= 15
+
+    for r in f['compare']:
+        if not r['market'] or not r['ours']:
+            continue
+        c.setFillColor(BODY); c.setFont('Helvetica', 9.2)
+        label = r['program'] + ('  \u2020' if r['fed'] else '')
+        c.drawString(M + 0.05*inch, y, label)
+        c.setFillColor(INK); c.setFont('Helvetica-Bold', 9.2)
+        c.drawRightString(X_PTS, y, pts(r['points']))
+        mult = r['ours'] / r['market']
+        c.setFillColor(ACCENT if mult >= 1 else GREY)
+        c.setFont('Helvetica-Bold', 9.2)
+        c.drawRightString(X_OURS, y, '%.2f\u00a2' % r['ours'])
+        c.setFillColor(BODY); c.setFont('Helvetica', 9.2)
+        c.drawRightString(X_MKT, y, '%.2f\u00a2' % r['market'])
+        c.setFillColor(ACCENT if mult >= 1 else GREY)
+        c.setFont('Helvetica-Bold', 9.2)
+        c.drawRightString(X_MULT, y, '%.2f\u00d7' % mult)
+        y -= 15
+
+    y -= 10
+    c.setFillColor(GREY); c.setFont('Helvetica', 8.2)
+    c.drawString(M + 0.05*inch, y,
+                 '\u2020 Bought with bank points, so this row is not your real rate \u2014 the section above is.')
+    y -= 12
+    c.drawString(M + 0.05*inch, y,
+                 'Benchmark valuations published %s. They are typical redemptions, not best or worst cases.'
+                 % f['benchmark']['asOf'])
 
 
 def main():
@@ -365,6 +504,10 @@ def main():
 
     # ── the programme-by-programme detail (paginates itself) ────────────────
     programme_pages(c, f)
+    c.showPage()
+
+    # ── what that was worth against the published market rate ──────────────
+    market_page(c, f)
     c.showPage()
 
     # ── and finally: the redemptions ───────────────────────────────────────
