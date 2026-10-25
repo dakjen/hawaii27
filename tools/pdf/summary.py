@@ -354,7 +354,20 @@ def market_page(c, f):
         c.drawRightString(W - M - 0.22*inch, y - 0.72*inch,
                           '%.2f\u00d7 the benchmark' % mult)
         y -= block + 10
-    y -= 0.14*inch
+
+    T = f['transferBonus']
+    c.setFillColor(GREY); c.setFont('Helvetica-Oblique', 8.2)
+    c.drawString(M + 0.05*inch, y,
+                 'Amex is costed here at each booking\u2019s own transfer ratio. The statements show %s Amex'
+                 % pts(T['amex']))
+    y -= 12
+    c.drawString(M + 0.05*inch, y,
+                 'actually moved to Hilton, landing %s of the %s those rooms used \u2014 the rest came off'
+                 % (pts(T['hilton']), pts(T['hilton'] + 198800)))
+    y -= 12
+    c.drawString(M + 0.05*inch, y,
+                 'balances. Costed either way, an Amex point returned between 1.5\u00a2 and 1.6\u00a2.')
+    y -= 0.2*inch
 
     # ── every programme ────────────────────────────────────────────────────
     c.setFillColor(INK); c.setFont('Helvetica-Bold', 11.5)
