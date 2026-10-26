@@ -36,6 +36,14 @@ export async function POST(req) {
   };
   const senderPin = process.env.SENDER_PIN;
 
+  // A PIN that is not configured on the server is skipped below, so a missing
+  // env var is indistinguishable from a wrong PIN. Say which it is.
+  const configured = [...Object.values(travelerPins), senderPin].filter(Boolean).length;
+  if (!configured) {
+    return Response.json(
+      { error: 'No PINs configured on the server' }, { status: 500 });
+  }
+
   let mode = null;
   let travelerId = null;
   for (const [id, expected] of Object.entries(travelerPins)) {
