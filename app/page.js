@@ -967,7 +967,7 @@ function PlanNow({ party }) {
           </span>
         </div>
       ))}
-      <div className="plan-now-foot">Nothing here is fixed \u2014 come and go as you like.</div>
+      <div className="plan-now-foot">Nothing here is fixed — come and go as you like.</div>
     </div>
   );
 }
