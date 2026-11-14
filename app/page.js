@@ -353,7 +353,7 @@ function NrtAlert({ alert }) {
 }
 
 // ── Itinerary Card ────────────────────────────────────────────────────────────
-function ItinCard({ item }) {
+function ItinCard({ item, showParty = false, you = null }) {
   const [open, setOpen] = useState(false);
   const days = getDaysUntil(item.date);
   const isPast = days < 0 && (!item.endDate || getDaysUntil(item.endDate) < 0);
@@ -376,6 +376,11 @@ function ItinCard({ item }) {
         <div className="itin-info">
           <div className="itin-title">{item.title}</div>
           <div className="itin-sub">{item.subtitle}</div>
+          {showParty && PARTIES[item.party] && (
+            <div className={`itin-party ${item.party === you ? 'mine' : ''}`}>
+              {PARTIES[item.party].short}{item.party === you ? ' \u00b7 you' : ''}
+            </div>
+          )}
           {item.booked && (
             <div className="itin-booked"><Icon name="Check" size={10} /> Booked</div>
           )}
@@ -1146,9 +1151,18 @@ function MessagesTab({ me }) {
 
 
 // ── The loose plan ────────────────────────────────────────────────────────────
-// Sits under the timeline. Shows only days the viewer is part of.
+// An entry with no `who` of its own inherits the day's; neither means everyone.
+function whoLabel(entry, day) {
+  const who = entry.who || day.who;
+  if (!who || who.length === Object.keys(PARTIES).length) return 'Everyone';
+  return who.map(id => PARTIES[id]?.short || id).join(' \u00b7 ');
+}
+
+// Sits under the timeline. With no party it shows the whole group's plan,
+// and each entry says who it is for.
 function PlanList({ party }) {
   const days = party ? planFor(party) : PLAN;
+  const showWho = !party;
   if (!days.length) return null;
   return (
     <div className="plan-wrap">
@@ -1169,6 +1183,7 @@ function PlanList({ party }) {
               <div className="plan-what">
                 <div className="plan-entry-title">
                   {e.title}
+                  {showWho && <span className="plan-chip who">{whoLabel(e, day)}</span>}
                   {e.open && <span className="plan-chip open">Optional</span>}
                   {e.book && <span className="plan-chip book">Needs booking</span>}
                 </div>
@@ -1185,10 +1200,10 @@ function PlanList({ party }) {
 }
 
 function ItineraryTab({ party = null, isAdmin = false }) {
-  // Organisers and admin can flip between parties. Everyone else gets the
-  // whole-group graphic but only their own list underneath.
-  const canSwitch = isAdmin || (party && PARTIES[party]?.seesAll);
-  const [sel, setSel] = useState(party || 'all');
+  // Everyone can flip between parties, and everyone opens on the whole group
+  // so the other parties' reservations are visible without going looking.
+  const canSwitch = true;
+  const [sel, setSel] = useState('all');
   const listParty = canSwitch ? sel : party;
   const items = listParty === 'all' || !listParty ? ITINERARY : itineraryFor(listParty);
   const order = party ? [party, ...Object.keys(PARTIES).filter(id => id !== party)] : Object.keys(PARTIES);
@@ -1213,7 +1228,10 @@ function ItineraryTab({ party = null, isAdmin = false }) {
         {listParty && listParty !== 'all' ? `${PARTIES[listParty].label} — itinerary` : 'Full itinerary'}
       </TitleIcon>
       <div className="itinerary-list">
-        {items.map(item => <ItinCard key={item.id} item={item}/>)}
+        {items.map(item => (
+          <ItinCard key={item.id} item={item}
+                    showParty={listParty === 'all' || !listParty} you={party} />
+        ))}
       </div>
       <PlanList party={listParty === 'all' ? null : listParty} />
     </>
